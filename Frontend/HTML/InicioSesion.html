@@ -1,0 +1,83 @@
+<html><head>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>Inicio de Sesión- SECUSEO</title>
+<link href="Logo.png" rel="icon" type="image/png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+      :root {
+        --primary-color: #545dfa;--secondary-color: #f1f2ff;--accent-color: #545dfa;
+        --text-color: #1a202c;
+        --background-color: #f1f2ff;
+      }
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--background-color);
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e6e6e6' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      }
+      .form-input {
+        border: 1px solid #cbd5e1;
+        transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+      }
+      .form-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.2);
+        outline: none;
+      }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+<div class="w-full max-w-md p-8 space-y-6 bg-white shadow-2xl rounded-2xl">
+<div class="flex justify-center">
+<img alt="SECUSEO Logo" class="h-16 w-auto" src="Logo.png"/>
+</div>
+<h2 class="text-3xl font-bold text-center text-[var(--text-color)]">Bienvenido a SECUSEO</h2>
+<p class="text-center text-gray-500">Reporta y visualiza zonas peligrosas en Funza.</p>
+<div class="space-y-6" x-data="{ isLogin: true }">
+<div class="flex border-b border-gray-200">
+<button :class="isLogin ? 'border-b-2 border-[var(--primary-color)] text-[var(--primary-color)]' : 'text-gray-500'" @click="isLogin = true" class="flex-1 py-2 font-medium text-center transition-colors">Iniciar Sesión</button>
+<button :class="!isLogin ? 'border-b-2 border-[var(--primary-color)] text-[var(--primary-color)]' : 'text-gray-500'" @click="isLogin = false" class="flex-1 py-2 font-medium text-center transition-colors">Registrarse</button>
+</div>
+<form action="#" class="space-y-6" x-show="isLogin">
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="login-email">Correo electrónico</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="login-email" placeholder="Correo electrónico" required="" type="email"/>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="login-password">Contraseña</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="login-password" placeholder="Contraseña" required="" type="password"/>
+</div>
+<div>
+<button class="w-full px-4 py-3 font-semibold text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--accent-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-300" type="submit">Ingresar</button>
+</div>
+</form>
+<form action="#" class="space-y-6" style="display: none;" x-show="!isLogin">
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="register-name">Nombre completo</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-name" placeholder="Nombre completo" required="" type="text"/>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="register-email">Correo electrónico</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-email" placeholder="Correo electrónico" required="" type="email"/>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="register-password">Contraseña</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-password" placeholder="Contraseña" required="" type="password"/>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="register-dob">Fecha de Nacimiento</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base text-gray-500" id="register-dob" onblur="(this.type='text')" onfocus="(this.type='date')" placeholder="Fecha de Nacimiento" required="" type="text"/>
+</div>
+<div>
+<button class="w-full px-4 py-3 font-semibold text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--accent-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-300" type="submit">Registrarse</button>
+</div>
+</form>
+<div class="text-center">
+<a class="text-sm font-medium text-[var(--primary-color)] hover:underline" href="#">¿Olvidaste tu contraseña?</a>
+</div>
+</div>
+</div>
+<script defer="" src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"></script>
+
+</body></html>

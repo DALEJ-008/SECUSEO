@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Poppins:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<title>Formulario de Reporte- SECUSEO</title>
+
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+
+        :root {
+            --primary-color: #545dfa;
+            --secondary-color: #e7edf3;
+            --third-color: #f1f2ff;
+            --text-primary: #3a41b3;
+            --text-secondary: #3a41b3;
+        }
+        .form-input {
+            @apply w-full rounded-lg border-slate-300 bg-[var(--secondary-color)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:ring-blue-500;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden bg-[var(--third-color)]">
+<div class="m-auto flex w-full max-w-lg flex-col rounded-xl bg-white shadow-xl">
+<div class="border-b border-slate-200 px-6 py-4">
+    <div class="flex items-start justifi between">
+        <div class="flex-1">
+            <h2 class="text-xl font-bold text-slate-800">Reportar una zona peligrosa</h2>
+            <p class="text-sm text-slate-500">Ayúdanos a mantener segura a nuestra comunidad.</p>
+        </div>
+
+        <div class="ml-4 flex-shrink-0">
+            <img alt="SECUSEO Logo" class="h-12 w-auto" src="Logo3.png">
+        </div>
+    </div>
+</div>
+<div class="flex flex-col gap-4 p-6">
+<div class="relative">
+<label class="mb-1 block text-sm font-medium text-slate-700" for="location">Ubicación</label>
+<div class="relative">
+<span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            location_on
+                        </span>
+<input class="form-input h-12 w-full rounded-lg border-slate-300 bg-slate-100 pl-10 pr-4 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="location" placeholder="Selecciona en el mapa o ingresa una dirección" type="text"/>
+</div>
+</div>
+<div class="relative">
+<label class="mb-1 block text-sm font-medium text-slate-700" for="risk-type">Tipo de riesgo</label>
+<div class="relative">
+<span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            warning
+                        </span>
+<select class="form-select h-12 w-full appearance-none rounded-lg border-slate-300 bg-slate-100 pl-10 pr-8 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="risk-type">
+<option disabled="" selected="">Selecciona el tipo de riesgo</option>
+<option value="robo">Robo</option>
+<option value="asalto">Asalto</option>
+<option value="vandalismo">Vandalismo</option>
+<option value="iluminacion">Poca iluminación</option>
+<option value="otro">Otro</option>
+</select>
+
+</div>
+</div>
+<div>
+<label class="mb-1 block text-sm font-medium text-slate-700" for="description">Descripción</label>
+<textarea class="form-input min-h-32 w-full rounded-lg border-slate-300 bg-slate-100 p-4 text-base focus:border-blue-500 focus:ring-blue-500" id="description" placeholder="Describe lo que sucede en la zona..."></textarea>
+</div>
+<div>
+<label class="mb-1 block text-sm font-medium text-slate-700" for="file-upload">Subir imagen (opcional)</label>
+<div class="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6">
+<div class="text-center">
+<span class="material-symbols-outlined mx-auto text-4xl text-slate-400">
+                                cloud_upload
+                            </span>
+<p class="mt-2 text-sm text-slate-600">
+<span class="font-semibold text-[var(--primary-color)]">Haz clic para subir</span> o arrastra y suelta una imagen.
+                            </p>
+<p class="text-xs text-slate-500">PNG, JPG, GIF hasta 10MB</p>
+<input class="sr-only" id="file-upload" name="file-upload" type="file"/>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+<button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2" type="button">
+                    Cancelar
+                </button>
+<button class="flex items-center justify-center gap-2 rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2" type="submit">
+<span class="material-symbols-outlined">
+                        report
+                    </span>
+                    Reportar zona peligrosa
+                </button>
+</div>
+</div>
+</div>
+
+</body></html>
