@@ -246,9 +246,21 @@
             'San Sebastián': { total: 10, highRisk: 4, mediumRisk: 4, lowRisk: 2 }
         };
 
+        // Helper: buscar reportData intentando coincidencia exacta y luego case-insensitive
+        function findReportData(name) {
+            if (!name) return null;
+            const trimmed = name.trim();
+            if (reportData[trimmed]) return reportData[trimmed];
+            const lower = trimmed.toLowerCase();
+            for (const key in reportData) {
+                if (key.toLowerCase() === lower) return reportData[key];
+            }
+            return null;
+        }
+
         // Función para calcular el color basado en reportes
         function getColor(neighborhoodName) {
-            const data = reportData[neighborhoodName];
+            const data = findReportData(neighborhoodName);
             if (!data || data.total === 0) {
                 return '#90EE90'; // Verde claro para zonas sin reportes
             }
@@ -264,7 +276,9 @@
 
         // Función para estilo de cada feature
         function style(feature) {
-            const neighborhoodName = feature.properties.BARRIO || feature.properties.nombre || feature.properties.NAME;
+            // El GeoJSON que tienes usa la propiedad "NOMBRE" para el nombre del barrio.
+            // Añadimos varias comprobaciones para diferentes capitalizaciones/atributos.
+            const neighborhoodName = feature.properties.BARRIO || feature.properties.NOMBRE || feature.properties.nombre || feature.properties.NAME || feature.properties.Name || feature.properties.name;
             return {
                 fillColor: getColor(neighborhoodName),
                 weight: 2,
@@ -299,8 +313,8 @@
 
         // Función para manejar cada feature
         function onEachFeature(feature, layer) {
-            const neighborhoodName = feature.properties.BARRIO || feature.properties.nombre || feature.properties.NAME;
-            const data = reportData[neighborhoodName];
+            const neighborhoodName = feature.properties.BARRIO || feature.properties.NOMBRE || feature.properties.nombre || feature.properties.NAME || feature.properties.Name || feature.properties.name;
+            const data = findReportData(neighborhoodName);
 
             let popupContent = `<div class="p-3">
                 <h3 class="font-bold text-lg mb-2">${neighborhoodName}</h3>`;
@@ -340,13 +354,36 @@
         // Cargar el archivo GeoJSON
         async function loadGeoJSON() {
             try {
-                const response = await fetch('../Recursos/Barrios_Municipio_de_Funza_2008_1%3A15000_(Capa).geojson');
+                // Intentamos varias rutas (primero absoluta, luego relativa) para evitar problemas de path
+                const candidateUrls = [
+                    '/Recursos/Barrios_Funza.geojson',
+                    '../Recursos/Barrios_Funza.geojson'
+                ];
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                let response = null;
+                let usedUrl = null;
+
+                for (const url of candidateUrls) {
+                    try {
+                        console.log('Intentando cargar GeoJSON desde', url);
+                        response = await fetch(url, { cache: 'no-store' });
+                        console.log('Respuesta:', url, response && response.status);
+                        if (response && response.ok) {
+                            usedUrl = url;
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn('Error fetch a', url, e && e.message);
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    const statuses = candidateUrls.map(u => `${u}`).join(', ');
+                    throw new Error(`No se pudo cargar el GeoJSON desde las rutas probadas: ${candidateUrls.join(' | ')}`);
                 }
 
                 const geojsonData = await response.json();
+                console.log('GeoJSON cargado desde', usedUrl, '- features:', geojsonData.features && geojsonData.features.length);
 
                 // Crear la capa GeoJSON
                 geojsonLayer = L.geoJSON(geojsonData, {
@@ -362,7 +399,7 @@
                 const neighborhoods = [];
 
                 geojsonData.features.forEach(feature => {
-                    const name = feature.properties.BARRIO || feature.properties.nombre || feature.properties.NAME;
+                    const name = feature.properties.BARRIO || feature.properties.NOMBRE || feature.properties.nombre || feature.properties.NAME || feature.properties.Name || feature.properties.name;
                     if (name && !neighborhoods.includes(name)) {
                         neighborhoods.push(name);
                     }
@@ -380,11 +417,14 @@
 
             } catch (error) {
                 console.error('Error cargando el archivo GeoJSON:', error);
-                document.getElementById('loading').innerHTML = `
+                // Mostrar mensaje corto en la UI y el error en la consola
+                const loadingEl = document.getElementById('loading');
+                loadingEl.innerHTML = `
                     <div class="text-red-600">
                         <span class="material-symbols-outlined">error</span>
                         <div>Error al cargar la delimitación de Funza</div>
                         <div class="text-sm mt-1">Verifique que el archivo GeoJSON esté en la ruta correcta</div>
+                        <div class="text-xs mt-2">Detalle: ${String(error).slice(0,200)}</div>
                     </div>
                 `;
             }
