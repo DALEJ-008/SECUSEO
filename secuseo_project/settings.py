@@ -38,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Local apps
+    'Backend',
+    # reportes app lives under the secuseo_project package
+    'secuseo_project.reportes',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +59,7 @@ ROOT_URLCONF = 'secuseo_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [ BASE_DIR / 'Frontend' / 'HTML' ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -87,6 +91,8 @@ WSGI_APPLICATION = 'secuseo_project.wsgi.application'
 
 DATABASES = {
     'default': {
+        # Use the standard sqlite3 backend by default for local development.
+        # We store geometries as JSONField, so a spatial backend is not required.
         'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.sqlite3'),
         'NAME': os.environ.get('SQL_DATABASE', BASE_DIR / 'db.sqlite3'),
         'USER': os.environ.get('SQL_USER', ''),
@@ -132,8 +138,29 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'Frontend',
+]
+
+# Media (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# If GDAL is installed via Conda, point Django to the GDAL DLL so GeoDjango can find it on Windows.
+GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH', r"C:\Users\dnalj\miniconda3\envs\secuseo-py311\Library\bin\gdal.dll")
+# If libspatialite is available in the conda env, point to it as well so the spatiallite
+# backend can be used with SQLite during local development.
+SPATIALITE_LIBRARY_PATH = os.environ.get('SPATIALITE_LIBRARY_PATH', r"C:\Users\dnalj\miniconda3\envs\secuseo-py311\Library\bin\mod_spatialite.dll")
+# fallback to spatialite.dll if mod_spatialite is not present
+if not os.path.exists(SPATIALITE_LIBRARY_PATH):
+    alt = r"C:\Users\dnalj\miniconda3\envs\secuseo-py311\Library\bin\spatialite.dll"
+    if os.path.exists(alt):
+        SPATIALITE_LIBRARY_PATH = alt
+
+# If you want to use spatialite with the default sqlite DB for development, set the engine
+# to django.contrib.gis.db.backends.spatialite via environment variable SQL_ENGINE.

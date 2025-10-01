@@ -1,10 +1,14 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="es"><head>
 <meta charset="utf-8"/>
 <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Poppins:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 <title>Formulario de Reporte- SECUSEO</title>
+
+<!-- Leaflet CSS (needed for map rendering) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
 <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -36,11 +40,13 @@
         </div>
 
         <div class="ml-4 flex-shrink-0">
-            <img alt="SECUSEO Logo" class="h-12 w-auto" src="Logo3.png">
+            <img alt="SECUSEO Logo" class="h-12 w-auto" src="{% static 'HTML/Logo3.png' %}">
         </div>
     </div>
 </div>
 <div class="flex flex-col gap-4 p-6">
+<form method="post" id="report-form">
+    {% csrf_token %}
 <div class="relative">
 <label class="mb-1 block text-sm font-medium text-slate-700" for="location">Ubicación</label>
 <div class="relative">
@@ -50,6 +56,19 @@
 <input class="form-input h-12 w-full rounded-lg border-slate-300 bg-slate-100 pl-10 pr-4 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="location" placeholder="Selecciona en el mapa o ingresa una dirección" type="text"/>
 </div>
 </div>
+<!-- Zona removed: server will determine zona from coordinates -->
+<input type="hidden" id="lat" name="lat">
+<input type="hidden" id="lng" name="lng">
+<div>
+    <div class="flex items-center gap-2 mb-2">
+        <button id="open-map" type="button" class="rounded-md bg-white border px-3 py-1">Seleccionar en el mapa</button>
+    </div>
+    <div id="mini-map-wrapper" style="display:none;">
+        <div id="mini-map" style="height:200px; border:1px solid #e5e7eb; border-radius:8px;"></div>
+    </div>
+    <div id="suggestions" class="mt-2"></div>
+</div>
+
 <div class="relative">
 <label class="mb-1 block text-sm font-medium text-slate-700" for="risk-type">Tipo de riesgo</label>
 <div class="relative">
@@ -57,12 +76,22 @@
                             warning
                         </span>
 <select class="form-select h-12 w-full appearance-none rounded-lg border-slate-300 bg-slate-100 pl-10 pr-8 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="risk-type">
-<option disabled="" selected="">Selecciona el tipo de riesgo</option>
+<option disabled selected>Selecciona el tipo de riesgo</option>
 <option value="robo">Robo</option>
 <option value="asalto">Asalto</option>
+<option value="hurto">Hurto</option>
 <option value="vandalismo">Vandalismo</option>
 <option value="iluminacion">Poca iluminación</option>
+<option value="accidente">Accidente de Tránsito</option>
+<option value="violencia">Violencia</option>
+<option value="consumo_drogas">Consumo/venta de drogas</option>
+<option value="incendio">Incendio</option>
+<option value="amenaza">Amenaza</option>
 <option value="otro">Otro</option>
+<option value="robo_vehiculo">Robo de vehículos</option>
+<option value="acoso_callejero">Acoso callejero</option>
+<option value="prostitucion_ilegal">Prostitución ilegal</option>
+<option value="fraude_estafa">Fraudes y estafas</option>
 </select>
 
 </div>
@@ -82,13 +111,13 @@
 <span class="font-semibold text-[var(--primary-color)]">Haz clic para subir</span> o arrastra y suelta una imagen.
                             </p>
 <p class="text-xs text-slate-500">PNG, JPG, GIF hasta 10MB</p>
-<input class="sr-only" id="file-upload" name="file-upload" type="file"/>
+<input id="file-upload" name="imagen" type="file" accept="image/*"/>
 </div>
 </div>
 </div>
-</div>
+</form>
 <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-<button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2" type="button">
+<button id="cancel-btn" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2" type="button">
                     Cancelar
                 </button>
 <button class="flex items-center justify-center gap-2 rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2" type="submit">
@@ -100,5 +129,236 @@
 </div>
 </div>
 </div>
+
+<script>
+    // CSRF helper (for Django)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function populateZones() {
+        try {
+            const res = await fetch('/api/zonas/');
+            if (!res.ok) return;
+            const data = await res.json();
+            const sel = document.getElementById('zone-select');
+            data.zonas.forEach(z => {
+                const opt = document.createElement('option');
+                opt.value = z.id;
+                opt.textContent = z.nombre;
+                sel.appendChild(opt);
+            });
+        } catch (e) {
+            console.warn('No se pudieron cargar zonas', e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+            // load Funza barrios polygons so autocomplete is restricted to Funza
+            const zonasGeoJsonUrl = "{% static 'Recursos/Barrios_Funza.geojson' %}";
+            let zonasPolygons = []; // array of polygons, each polygon is array of linear rings (outer + holes), coords in [lon, lat]
+            let zonasBBox = null; // [minLon, minLat, maxLon, maxLat]
+            fetch(zonasGeoJsonUrl).then(r => r.json()).then(geo => {
+                try {
+                    let minLon=Infinity, minLat=Infinity, maxLon=-Infinity, maxLat=-Infinity;
+                    (geo.features||[]).forEach(f => {
+                        const g = f.geometry;
+                        if (!g) return;
+                        if (g.type === 'Polygon') {
+                            zonasPolygons.push(g.coordinates);
+                            g.coordinates.forEach(ring => ring.forEach(pt => {
+                                const lon = pt[0], lat = pt[1];
+                                if (lon < minLon) minLon = lon;
+                                if (lat < minLat) minLat = lat;
+                                if (lon > maxLon) maxLon = lon;
+                                if (lat > maxLat) maxLat = lat;
+                            }));
+                        } else if (g.type === 'MultiPolygon') {
+                            g.coordinates.forEach(poly => {
+                                zonasPolygons.push(poly);
+                                poly[0].forEach(ringPt => ringPt.forEach(pt => {
+                                    const lon = pt[0], lat = pt[1];
+                                    if (lon < minLon) minLon = lon;
+                                    if (lat < minLat) minLat = lat;
+                                    if (lon > maxLon) maxLon = lon;
+                                    if (lat > maxLat) maxLat = lat;
+                                }));
+                            });
+                        }
+                    });
+                    if (isFinite(minLon)) zonasBBox = [minLon, minLat, maxLon, maxLat];
+                } catch (e) { console.warn('Error parsing zonas geojson', e); }
+            }).catch(()=>{ console.warn('No se pudo cargar Barrios_Funza.geojson para filtrar autocompletado'); });
+
+            // helper: point-in-polygon (ray-casting) for a linear ring where ring is [[lon,lat],...]
+            function _ringContains(x, y, ring) {
+                let inside = false;
+                let j = ring.length - 1;
+                for (let i = 0; i < ring.length; i++) {
+                    const xi = ring[i][0], yi = ring[i][1];
+                    const xj = ring[j][0], yj = ring[j][1];
+                    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+                    if (intersect) inside = !inside;
+                    j = i;
+                }
+                return inside;
+            }
+
+            function pointInAnyPolygon(lon, lat) {
+                if (!zonasPolygons || zonasPolygons.length === 0) return false;
+                for (let p = 0; p < zonasPolygons.length; p++) {
+                    const poly = zonasPolygons[p];
+                    // poly is array of rings; test outer ring only (poly[0])
+                    if (poly && poly.length && _ringContains(lon, lat, poly[0])) return true;
+                }
+                return false;
+            }
+
+            // lazy initialization of mini map for picking coordinates
+            let miniMap = null;
+            let pickMarker = null;
+            function initMiniMap() {
+                if (miniMap) return miniMap;
+                document.getElementById('mini-map-wrapper').style.display = 'block';
+                miniMap = L.map('mini-map').setView([4.716, -74.212], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(miniMap);
+                miniMap.on('click', function(e) {
+                    const {lat, lng} = e.latlng;
+                    if (pickMarker) pickMarker.setLatLng(e.latlng);
+                    else pickMarker = L.marker(e.latlng).addTo(miniMap);
+                    document.getElementById('lat').value = lat;
+                    document.getElementById('lng').value = lng;
+                    // reverse geocode to fill location field
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                        .then(r => r.json()).then(data => {
+                            if (data && data.display_name) document.getElementById('location').value = data.display_name;
+                        }).catch(()=>{});
+                });
+                return miniMap;
+            }
+
+            document.getElementById('open-map').addEventListener('click', function(e){
+                // only show the mini-map in-place so the user can pick a point; do not navigate away or submit the form
+                e.preventDefault();
+                e.stopPropagation();
+                initMiniMap();
+                // scroll the mini-map into view for small screens
+                const mmw = document.getElementById('mini-map-wrapper');
+                if (mmw) mmw.scrollIntoView({behavior: 'smooth', block: 'center'});
+                return false;
+            });
+
+        // address autocomplete using Nominatim
+        let acTimer = null;
+        const locInput = document.getElementById('location');
+        const suggestions = document.getElementById('suggestions');
+        locInput.addEventListener('input', function() {
+            const q = this.value.trim();
+            suggestions.innerHTML = '';
+            if (acTimer) clearTimeout(acTimer);
+            if (!q || q.length < 3) return;
+            acTimer = setTimeout(async () => {
+                try {
+                    // if we have a bbox for Funza, use the viewbox/bounded param to bias results
+                    let url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&addressdetails=1&limit=8`;
+                    if (zonasBBox) {
+                        // viewbox expects left,top,right,bottom -> left= minLon, top=maxLat, right=maxLon, bottom=minLat
+                        const vb = [zonasBBox[0], zonasBBox[3], zonasBBox[2], zonasBBox[1]];
+                        url += `&viewbox=${vb.join(',')}&bounded=1`;
+                    }
+                    const res = await fetch(url);
+                    const arr = await res.json();
+                    suggestions.innerHTML = '';
+                    // filter results to those that fall inside the Funza polygons (if we have them)
+                    const filtered = arr.filter(item => {
+                        if (!item || !item.lon || !item.lat) return false;
+                        const lon = parseFloat(item.lon), lat = parseFloat(item.lat);
+                        if (!zonasPolygons || zonasPolygons.length === 0) return true; // if polygons not loaded, allow
+                        return pointInAnyPolygon(lon, lat);
+                    });
+                    filtered.forEach(item => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'w-full text-left p-2 hover:bg-slate-100 rounded';
+                        btn.textContent = item.display_name;
+                        btn.addEventListener('click', function() {
+                            document.getElementById('location').value = item.display_name;
+                            document.getElementById('lat').value = item.lat;
+                            document.getElementById('lng').value = item.lon;
+                            // ensure the miniMap exists before placing a marker
+                            const mapInstance = initMiniMap();
+                            if (pickMarker) pickMarker.setLatLng([item.lat, item.lon]);
+                            else pickMarker = L.marker([item.lat, item.lon]).addTo(mapInstance);
+                            mapInstance.setView([item.lat, item.lon], 16);
+                            suggestions.innerHTML = '';
+                        });
+                        suggestions.appendChild(btn);
+                    });
+                } catch (e) { console.warn('autocomplete error', e); }
+            }, 350);
+        });
+
+        // Submit handler: use FormData to include image
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async function(ev) {
+                ev.preventDefault();
+                const formEl = document.getElementById('report-form');
+                const fd = new FormData();
+                fd.append('ubicacion', document.getElementById('location').value);
+                fd.append('descripcion', document.getElementById('description').value);
+                fd.append('tipo', document.getElementById('risk-type').value || 'otro');
+                const lat = document.getElementById('lat').value;
+                const lng = document.getElementById('lng').value;
+                if (lat && lng) { fd.append('lat', lat); fd.append('lng', lng); }
+                const fileInput = document.getElementById('file-upload');
+                if (fileInput && fileInput.files && fileInput.files[0]) fd.append('imagen', fileInput.files[0]);
+
+                const csrftoken = getCookie('csrftoken');
+                try {
+                    const res = await fetch('/api/reportes/crear/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrftoken },
+                        body: fd
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert('Error creando reporte: ' + (err.errors || err.error || res.statusText));
+                        return;
+                    }
+                    // hide mini-map to prevent overlap, then show notification modal above everything
+                    const mmw = document.getElementById('mini-map-wrapper');
+                    if (mmw) mmw.style.display = 'none';
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-40';
+                    // ensure modal is on top of Leaflet canvas by using very large z-index on inner container
+                    modal.innerHTML = `<div style="z-index:9999999; position:relative;" class="bg-white p-6 rounded-lg max-w-md text-center"> <h3 class="text-lg font-bold mb-2">Reporte recibido</h3><p class="mb-4">Gracias — tu reporte será revisado por los administradores antes de publicarse. Apreciamos tu contribución a la seguridad de la comunidad.</p><button id="modal-ok" class="px-4 py-2 bg-[var(--primary-color)] text-white rounded">Aceptar</button></div>`;
+                    document.body.appendChild(modal);
+                    document.getElementById('modal-ok').addEventListener('click', function(){ window.location.href = '/'; });
+                } catch (e) { alert('Error de red al crear el reporte'); }
+            });
+        }
+
+    // cancel button behavior (explicit id)
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => { window.location.href = '/'; });
+    });
+</script>
+
+<!-- Leaflet script required for mini-map -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
 
 </body></html>

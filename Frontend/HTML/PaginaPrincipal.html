@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -88,7 +89,7 @@
             <!-- Header -->
             <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 px-6 py-4">
                 <div class="flex items-center gap-3 text-text-primary">
-                    <img alt="SECUSEO Logo" class="h-12 w-auto" src="Logo2.png">
+                    <img alt="SECUSEO Logo" class="h-12 w-auto" src="{% static 'HTML/Logo2.png' %}">
                 </div>
 
                 <div class="flex items-center gap-4">
@@ -110,7 +111,7 @@
                 <!-- Sidebar -->
                 <aside class="w-96 flex-shrink-0 border-r border-gray-200 p-6" style="background-color: var(--background-color)">
                     <div class="flex flex-col gap-6">
-                        <button class="flex w-full items-center justify-center gap-2 rounded-md bg-primary-color py-3 text-black text-base font-bold shadow-sm hover:bg-opacity-90 transition-colors">
+                        <button id="report-new-btn" class="flex w-full items-center justify-center gap-2 rounded-md bg-primary-color py-3 text-black text-base font-bold shadow-sm hover:bg-opacity-90 transition-colors">
                             <span class="material-symbols-outlined">add_location_alt</span>
                             <span class="truncate">Reportar Nueva Zona</span>
                         </button>
@@ -119,11 +120,24 @@
                         <div>
                             <h3 class="text-lg font-bold text-text-primary mb-4">Filtros</h3>
                             <div class="space-y-4">
-                                <select class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-color focus:ring-primary-color px-3 py-2">
+                                <select id="risk-filter" class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-color focus:ring-primary-color px-3 py-2">
                                     <option disabled selected>Tipo de Riesgo</option>
-                                    <option>Robo</option>
-                                    <option>Accidentes</option>
-                                    <option>Poca iluminación</option>
+                                    <option value="">Todos</option>
+                                    <option value="robo">Robo</option>
+                                    <option value="asalto">Asalto</option>
+                                    <option value="hurto">Hurto</option>
+                                    <option value="vandalismo">Vandalismo</option>
+                                    <option value="iluminacion">Poca iluminación</option>
+                                    <option value="accidente">Accidente de Tránsito</option>
+                                    <option value="violencia">Violencia</option>
+                                    <option value="consumo_drogas">Consumo/venta de drogas</option>
+                                    <option value="incendio">Incendio</option>
+                                    <option value="amenaza">Amenaza</option>
+                                    <option value="otro">Otro</option>
+                                    <option value="robo_vehiculo">Robo de vehículos</option>
+                                    <option value="acoso_callejero">Acoso callejero</option>
+                                    <option value="prostitucion_ilegal">Prostitución ilegal</option>
+                                    <option value="fraude_estafa">Fraudes y estafas</option>
                                 </select>
                                 <input class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-primary-color focus:ring-primary-color px-3 py-2" placeholder="Fecha" type="date">
                                 <select class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-color focus:ring-primary-color px-3 py-2">
@@ -142,34 +156,8 @@
                         <!-- Reportes -->
                         <div>
                             <h3 class="text-lg font-bold text-text-primary mb-4">Reportes Recientes</h3>
-                            <div class="space-y-4 max-h-96 overflow-y-auto">
-                                <div class="flex items-center gap-4 rounded-md border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer bg-white">
-                                    <div class="w-1.5 h-16 rounded-full bg-red-500"></div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-semibold text-red-600">Riesgo Alto</p>
-                                        <p class="font-bold text-text-primary">Robo en Transporte</p>
-                                        <p class="text-xs text-text-secondary">Reportado por Max</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
-                                </div>
-                                <div class="flex items-center gap-4 rounded-md border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer bg-white">
-                                    <div class="w-1.5 h-16 rounded-full bg-yellow-500"></div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-semibold text-yellow-600">Riesgo Medio</p>
-                                        <p class="font-bold text-text-primary">Accidente de Tránsito</p>
-                                        <p class="text-xs text-text-secondary">Reportado por Sara</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
-                                </div>
-                                <div class="flex items-center gap-4 rounded-md border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer bg-white">
-                                    <div class="w-1.5 h-16 rounded-full bg-green-500"></div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-semibold text-green-600">Riesgo Bajo</p>
-                                        <p class="font-bold text-text-primary">Parque poco iluminado</p>
-                                        <p class="text-xs text-text-secondary">Reportado por Camila</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
-                                </div>
+                            <div id="recent-reports" class="space-y-4 max-h-96 overflow-y-auto">
+                                <!-- Reportes recientes se cargarán vía JS desde /api/reportes/ -->
                             </div>
                         </div>
                     </div>
@@ -229,22 +217,14 @@
             maxZoom: 19
         }).addTo(map);
 
-        // Variables globales
-        let geojsonLayer = null;
-        let neighborhoodData = {};
+    // Variables globales
+    let geojsonLayer = null;
+    let neighborhoodData = {};
+    // Mapa de nombre de barrio -> capas (puede haber varios features con el mismo nombre)
+    let neighborhoodLayers = {};
 
-        // Datos simulados de reportes por barrio (en una aplicación real vendrían de una base de datos)
-        const reportData = {
-            'Centro': { total: 25, highRisk: 15, mediumRisk: 8, lowRisk: 2 },
-            'La Capilla': { total: 18, highRisk: 10, mediumRisk: 5, lowRisk: 3 },
-            'El Prado': { total: 12, highRisk: 3, mediumRisk: 6, lowRisk: 3 },
-            'La Fortuna': { total: 8, highRisk: 2, mediumRisk: 3, lowRisk: 3 },
-            'San Carlos': { total: 15, highRisk: 8, mediumRisk: 4, lowRisk: 3 },
-            'Villa Andrea': { total: 6, highRisk: 1, mediumRisk: 2, lowRisk: 3 },
-            'Bosques de Funza': { total: 4, highRisk: 0, mediumRisk: 1, lowRisk: 3 },
-            'La Esperanza': { total: 20, highRisk: 12, mediumRisk: 6, lowRisk: 2 },
-            'San Sebastián': { total: 10, highRisk: 4, mediumRisk: 4, lowRisk: 2 }
-        };
+        // reportData will be computed from API responses (reportes reales)
+        let reportData = {};
 
         // Helper: buscar reportData intentando coincidencia exacta y luego case-insensitive
         function findReportData(name) {
@@ -344,6 +324,12 @@
 
             layer.bindPopup(popupContent);
 
+            // Guardar la capa por nombre de barrio para que el filtro pueda accederla
+            if (neighborhoodName) {
+                if (!neighborhoodLayers[neighborhoodName]) neighborhoodLayers[neighborhoodName] = [];
+                neighborhoodLayers[neighborhoodName].push(layer);
+            }
+
             layer.on({
                 mouseover: highlightFeature,
                 mouseout: resetHighlight,
@@ -354,8 +340,9 @@
         // Cargar el archivo GeoJSON
         async function loadGeoJSON() {
             try {
-                // Intentamos varias rutas (primero absoluta, luego relativa) para evitar problemas de path
+                // Intentamos varias rutas (primero la ruta estática de Django, luego absoluta/relativa) para evitar problemas de path
                 const candidateUrls = [
+                    "{% static 'Recursos/Barrios_Funza.geojson' %}",
                     '/Recursos/Barrios_Funza.geojson',
                     '../Recursos/Barrios_Funza.geojson'
                 ];
@@ -412,6 +399,31 @@
                     neighborhoodFilter.appendChild(option);
                 });
 
+                // Añadir listener para el filtro de barrios: enfocar y resaltar el seleccionado
+                neighborhoodFilter.addEventListener('change', function(e) {
+                    const val = e.target.value;
+                    if (!val) {
+                        // Mostrar todos y resetear vista
+                        geojsonLayer.eachLayer(l => geojsonLayer.resetStyle(l));
+                        map.fitBounds(geojsonLayer.getBounds());
+                        return;
+                    }
+
+                    const layers = neighborhoodLayers[val] || [];
+                    // Resetear estilo de todos
+                    geojsonLayer.eachLayer(l => geojsonLayer.resetStyle(l));
+
+                    if (layers.length) {
+                        // Resaltar las capas encontradas y ajustar la vista
+                        layers.forEach(l => l.setStyle({ weight: 5, color: '#000', fillOpacity: 0.9 }));
+                        const group = L.featureGroup(layers);
+                        map.fitBounds(group.getBounds());
+                    } else {
+                        // Si no hay capas, no hacer nada
+                        console.warn('No se encontraron capas para el barrio:', val);
+                    }
+                });
+
                 // Ocultar loading
                 document.getElementById('loading').style.display = 'none';
 
@@ -458,39 +470,86 @@
             legend.addTo(map);
         }
 
-        // Agregar algunos marcadores de ejemplo para reportes específicos
-        const specificReports = [
-            { lat: 4.716, lng: -74.212, title: "Robo reportado", risk: "Alto", description: "Robo a mano armada" },
-            { lat: 4.718, lng: -74.210, title: "Accidente menor", risk: "Medio", description: "Choque de bicicletas" },
-            { lat: 4.714, lng: -74.214, title: "Zona mal iluminada", risk: "Bajo", description: "Falta de alumbrado público" }
-        ];
+        // Contenedor para marcadores de reportes (será poblado desde la API)
+        let reportMarkersLayer = L.layerGroup().addTo(map);
 
-        // Colores según el nivel de riesgo para marcadores
         const riskColors = {
-            'Alto': 'red',
-            'Medio': 'orange',
-            'Bajo': 'green'
+            'alto': '#b11',
+            'muy_alto': '#660000',
+            'medio': '#f39c12',
+            'bajo': '#2ecc71'
         };
 
-        // Agregar marcadores de reportes específicos
-        specificReports.forEach(report => {
-            const marker = L.circleMarker([report.lat, report.lng], {
-                radius: 8,
-                fillColor: riskColors[report.risk],
-                color: '#000',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map);
+        async function loadReportMarkers() {
+            try {
+                const res = await fetch('/api/reportes/', { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                reportMarkersLayer.clearLayers();
+                reportData = {}; // rebuild
+                data.reportes.forEach(r => {
+                    // If coordinates are present, create a marker
+                    if (r.coordenadas && Array.isArray(r.coordenadas)) {
+                        const [lng, lat] = r.coordenadas.length === 2 ? r.coordenadas : [r.coordenadas[0], r.coordenadas[1]];
+                        const pri = (r.prioridad || '').toLowerCase();
+                        const color = riskColors[pri] || '#888';
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: 7,
+                            fillColor: color,
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(reportMarkersLayer);
+                        marker.bindPopup(`<div class="p-2"><h3 class="font-bold">Reporte</h3><p class="text-sm">${r.descripcion || ''}</p><p class="text-xs">Zona: ${r.zona || 'N/A'}</p></div>`);
+                    }
 
-            marker.bindPopup(`
-                <div class="p-2">
-                    <h3 class="font-bold">${report.title}</h3>
-                    <p class="text-sm">Nivel: <span class="font-semibold">${report.risk}</span></p>
-                    <p class="text-xs text-gray-600">${report.description}</p>
-                </div>
-            `);
-        });
+                    // accumulate report stats by zona
+                    const z = r.zona || 'Sin zona';
+                    if (!reportData[z]) reportData[z] = { total: 0, highRisk: 0, mediumRisk: 0, lowRisk: 0 };
+                    reportData[z].total += 1;
+                    if (r.prioridad === 'muy_alto') reportData[z].highRisk += 2; // muy alto counts stronger
+                    else if (r.prioridad === 'alto') reportData[z].highRisk += 1;
+                    if (r.prioridad === 'medio') reportData[z].mediumRisk += 1;
+                    if (r.prioridad === 'bajo') reportData[z].lowRisk += 1;
+                });
+
+                // After loading reports, re-style the geojson layer if already present
+                if (geojsonLayer) {
+                    geojsonLayer.setStyle(style);
+                }
+            } catch (err) {
+                console.warn('No se pudieron cargar reportes:', err);
+            }
+        }
+
+        // Render recent reports in the sidebar
+        async function renderRecentReports() {
+            try {
+                const res = await fetch('/api/reportes/', { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('recent-reports');
+                container.innerHTML = '';
+                data.reportes.forEach(r => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-4 rounded-md border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer bg-white';
+                    const color = r.prioridad === 'alto' ? 'bg-red-500' : (r.prioridad === 'medio' ? 'bg-yellow-500' : 'bg-green-500');
+                    div.innerHTML = `
+                        <div class="w-1.5 h-16 rounded-full ${color}"></div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold ${r.prioridad === 'alto' ? 'text-red-600' : (r.prioridad === 'medio' ? 'text-yellow-600' : 'text-green-600')}">${r.prioridad ? ('Riesgo ' + r.prioridad.charAt(0).toUpperCase() + r.prioridad.slice(1)) : ''}</p>
+                            <p class="font-bold text-text-primary">${r.descripcion ? r.descripcion.slice(0,60) : r.ubicacion}</p>
+                            <p class="text-xs text-text-secondary">Zona: ${r.zona || 'Sin zona'}</p>
+                        </div>
+                        <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.warn('No se pudieron renderizar reportes recientes', e);
+            }
+        }
 
         // Controles personalizados
         document.getElementById('zoom-in').addEventListener('click', function() {
@@ -524,6 +583,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadGeoJSON();
             createLegend();
+            loadReportMarkers();
+            renderRecentReports();
+
+            const btn = document.getElementById('report-new-btn');
+            if (btn) btn.addEventListener('click', () => { window.location.href = '/reporte/form/'; });
         });
 
         // Asegurar que el mapa se renderice correctamente

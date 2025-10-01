@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand, CommandError
-from django.contrib.gis.geos import GEOSGeometry
 from django.conf import settings
 import json
 from Backend.models import Zona
@@ -41,13 +40,9 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
-            geom_json = json.dumps(geom)
-            try:
-                g = GEOSGeometry(geom_json)
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Error al parsear geometría de {nombre}: {e}'))
-                skipped += 1
-                continue
+            # Save geometry as GeoJSON (dict) in the JSONField. Avoid using GEOSGeometry
+            # to remove the dependency on GDAL/GEOS for development.
+            g = geom
 
             if options['dry_run']:
                 self.stdout.write(self.style.NOTICE(f'Importar: {nombre}'))

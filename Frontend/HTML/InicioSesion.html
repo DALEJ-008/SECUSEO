@@ -1,9 +1,10 @@
+{% load static %}
 <html><head>
 <meta charset="utf-8"/>
 <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
 <link as="style" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" onload="this.rel='stylesheet'" rel="stylesheet"/>
 <title>Inicio de Sesión- SECUSEO</title>
-<link href="Logo.png" rel="icon" type="image/png"/>
+<link href="{% static 'HTML/Logo.png' %}" rel="icon" type="image/png"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <style type="text/tailwindcss">
       :root {
@@ -30,7 +31,7 @@
 <body class="flex items-center justify-center min-h-screen">
 <div class="w-full max-w-md p-8 space-y-6 bg-white shadow-2xl rounded-2xl">
 <div class="flex justify-center">
-<img alt="SECUSEO Logo" class="h-16 w-auto" src="Logo.png"/>
+<img alt="SECUSEO Logo" class="h-16 w-auto" src="{% static 'HTML/Logo.png' %}"/>
 </div>
 <h2 class="text-3xl font-bold text-center text-[var(--text-color)]">Bienvenido a SECUSEO</h2>
 <p class="text-center text-gray-500">Reporta y visualiza zonas peligrosas en Funza.</p>
@@ -79,5 +80,80 @@
 </div>
 </div>
 <script defer="" src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"></script>
+
+<script>
+// CSRF helper
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  const loginForm = document.querySelector('form[x-show="isLogin"]');
+  const registerForm = document.querySelector('form[x-show="!isLogin"]');
+
+  // helper to show alert messages
+  function showAlert(msg) {
+    alert(msg);
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const fd = new FormData();
+      fd.append('action','login');
+      fd.append('email', email);
+      fd.append('password', password);
+      try {
+        const res = await fetch('/login/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || 'No se pudo iniciar sesión');
+          return;
+        }
+        // redirect according to server
+        if (data.redirect) window.location.href = data.redirect;
+      } catch (err) { showAlert('Error de red'); }
+    });
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const dob = document.getElementById('register-dob').value;
+      const fd = new FormData();
+      fd.append('action','register');
+      fd.append('name', name);
+      fd.append('email', email);
+      fd.append('password', password);
+      fd.append('dob', dob);
+      try {
+        const res = await fetch('/login/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || 'No se pudo registrar');
+          return;
+        }
+        if (data.redirect) window.location.href = data.redirect;
+      } catch (err) { showAlert('Error de red'); }
+    });
+  }
+});
+</script>
 
 </body></html>
