@@ -1,16 +1,25 @@
+"""
+Cleaned models derived from `inspectdb` that map to your existing PostgreSQL tables in Spanish.
+
+All models that reflect existing manually-created tables are set with `managed = False`
+so Django won't try to create/alter them with migrations.
+"""
+
 from django.db import models
+
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
 
 
 class Zona(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(blank=True)
-    # Store geometry as GeoJSON in a JSONField for development (no native GIS libs needed).
-    geometria = models.JSONField(null=True, blank=True)
+    nombre = models.CharField(unique=True, max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    geometria = models.JSONField(blank=True, null=True, db_column='perimetro_geografico')
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
-        return self.nombre
+    class Meta:
+        managed = False
+        db_table = 'zona'
 
 
 class UserProfile(models.Model):
@@ -24,92 +33,128 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     telefono = models.CharField(max_length=30, blank=True)
 
+    class Meta:
+        db_table = 'Backend_userprofile'
+        managed = False
+
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} ({self.role})"
 
 
+class Rol(models.Model):
+    nombre = models.CharField(unique=True, max_length=50)
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'rol'
+
+
+class TipoRiesgo(models.Model):
+    nombre = models.CharField(unique=True, max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    nivel_prioridad = models.CharField(max_length=10)
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tipo_riesgo'
+
+
+class Usuario(models.Model):
+    nombre = models.CharField(max_length=100)
+    correo = models.CharField(unique=True, max_length=100)
+    contrasena_hash = models.CharField(max_length=255, db_column='contrase±a_hash')
+    fecha_nacimiento = models.DateField(blank=True, null=True)
+    rol = models.ForeignKey(Rol, models.DO_NOTHING)
+    estado = models.CharField(max_length=20, blank=True, null=True)
+    zona_preferida = models.CharField(max_length=100, blank=True, null=True)
+    fecha_ultima_conexion = models.DateTimeField(blank=True, null=True)
+    token_notificaciones = models.CharField(max_length=255, blank=True, null=True)
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(blank=True, null=True)
+    fecha_eliminacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'usuario'
+
+
+class EstadoReporte(models.Model):
+    nombre = models.CharField(unique=True, max_length=50)
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
+    prioridad = models.IntegerField()
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'estado_reporte'
+
+
 class Reporte(models.Model):
-    PRIORIDAD_CHOICES = [
-        ('muy_alto', 'Muy alto'),
-        ('alto', 'Alto'),
-        ('medio', 'Medio'),
-        ('bajo', 'Bajo'),
-    ]
-
-    ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('validado', 'Validado'),
-        ('rechazado', 'Rechazado'),
-    ]
-
     ubicacion = models.CharField(max_length=255)
-    coordenadas = models.JSONField(null=True, blank=True)  # Store point as GeoJSON or [lng, lat]
-    zona = models.ForeignKey(Zona, on_delete=models.SET_NULL, null=True, blank=True)
+    coordenadas = models.JSONField(blank=True, null=True, db_column='coordenadas')
     descripcion = models.TextField()
-    # Tipo de riesgo (más específico) y prioridad derivada
-    TIPO_CHOICES = [
-        ('robo', 'Robo'),
-        ('asalto', 'Asalto'),
-        ('hurto', 'Hurto'),
-        ('vandalismo', 'Vandalismo'),
-        ('iluminacion', 'Poca iluminación'),
-        ('accidente', 'Accidente de Tránsito'),
-        ('violencia', 'Violencia'),
-        ('consumo_drogas', 'Consumo/venta de drogas'),
-        ('incendio', 'Incendio'),
-        ('amenaza', 'Amenaza'),
-        ('otro', 'Otro'),
-    ]
-    # Add missing types
-    TIPO_EXTRA = [
-        ('robo_vehiculo', 'Robo de vehículos'),
-        ('acoso_callejero', 'Acoso callejero'),
-        ('prostitucion_ilegal', 'Prostitución ilegal'),
-        ('fraude_estafa', 'Fraudes y estafas'),
-    ]
-    # combine lists
-    TIPO_CHOICES = TIPO_CHOICES + TIPO_EXTRA
-    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default='otro')
-    prioridad = models.CharField(max_length=10, choices=PRIORIDAD_CHOICES, blank=True)
-    # Imagen opcional
-    imagen = models.ImageField(upload_to='report_images/', null=True, blank=True)
-    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    prioridad = models.CharField(max_length=20, blank=True, null=True)
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+    estado = models.CharField(max_length=50, blank=True, null=True)
+    creado_por = models.ForeignKey('auth.User', models.DO_NOTHING, db_column='creado_por_id', blank=True, null=True, related_name='reportes_creados')
+    zona = models.ForeignKey(Zona, models.DO_NOTHING, db_column='zona_id', blank=True, null=True)
+    imagen = models.CharField(max_length=255, blank=True, null=True)
+    tipo = models.CharField(max_length=50, blank=True, null=True)
+        # fecha_actualizacion = models.DateTimeField(blank=True, null=True)
+        # fecha_eliminacion = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
-        return f"Reporte #{self.pk} - {self.ubicacion}"
+    class Meta:
+        managed = False
+        db_table = 'Backend_reporte'
 
-    def save(self, *args, **kwargs):
-        # Map tipo -> prioridad if prioridad not explicitly set
-        tipo_to_prioridad = {
-            'robo': 'alto',
-            'asalto': 'alto',
-            'hurto': 'alto',
-            'vandalismo': 'medio',
-            'iluminacion': 'medio',
-            'accidente': 'alto',
-            'violencia': 'muy_alto',
-            'consumo_drogas': 'muy_alto',
-            'incendio': 'alto',
-            'amenaza': 'alto',
-            'robo_vehiculo': 'alto',
-            'acoso_callejero': 'medio',
-            'prostitucion_ilegal': 'medio',
-            'fraude_estafa': 'medio',
-            'otro': 'medio'
-        }
-        if not self.prioridad:
-            self.prioridad = tipo_to_prioridad.get(self.tipo, 'medio')
-        super().save(*args, **kwargs)
+    @property
+    def imagen_url(self):
+        from django.conf import settings
+        if self.imagen:
+            return settings.MEDIA_URL.rstrip('/') + '/' + str(self.imagen).lstrip('/')
+        return None
 
 
 class Comentario(models.Model):
-    reporte = models.ForeignKey(Reporte, on_delete=models.CASCADE, related_name='comentarios')
-    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    texto = models.TextField()
-    fecha = models.DateTimeField(auto_now_add=True)
+    reporte = models.ForeignKey(Reporte, models.DO_NOTHING)
+    usuario = models.ForeignKey(Usuario, models.DO_NOTHING)
+    contenido = models.TextField()
+    fecha_comentario = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(blank=True, null=True)
+    fecha_eliminacion = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
-        return f"Comentario de {self.autor} en {self.reporte_id}"
+    class Meta:
+        managed = False
+        db_table = 'comentario'
+
+
+class Multimedia(models.Model):
+    reporte = models.ForeignKey(Reporte, models.DO_NOTHING)
+    usuario_creador = models.ForeignKey(Usuario, models.DO_NOTHING)
+    ruta_archivo = models.CharField(max_length=512)
+    tipo_archivo = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    fecha_creacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'multimedia'
+
+
+class ValidacionReporte(models.Model):
+    reporte = models.ForeignKey(Reporte, models.DO_NOTHING)
+    usuario_validador = models.ForeignKey(Usuario, models.DO_NOTHING)
+    decision = models.CharField(max_length=20, blank=True, null=True)
+    comentario_validacion = models.TextField(blank=True, null=True)
+    fecha_validacion = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'validacion_reporte'
+
 

@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-w1fux830-d47j(^t*p#f(_2lahgz=lz2s%th)z-u7t7-1-d5t_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
 
 
 # Application definition
@@ -91,14 +91,15 @@ WSGI_APPLICATION = 'secuseo_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        # Use the standard sqlite3 backend by default for local development.
-        # We store geometries as JSONField, so a spatial backend is not required.
-        'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.environ.get('SQL_DATABASE', BASE_DIR / 'db.sqlite3'),
-        'USER': os.environ.get('SQL_USER', ''),
-        'PASSWORD': os.environ.get('SQL_PASSWORD', ''),
-        'HOST': os.environ.get('SQL_HOST', ''),
-        'PORT': os.environ.get('SQL_PORT', ''),
+        # Default to PostgreSQL for this project. Environment variables can
+        # override these values (SQL_ENGINE, SQL_DATABASE, SQL_USER, etc.).
+        # This avoids accidentally using SQLite when you want the Postgres DB.
+        'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('SQL_DATABASE', 'SECUSEO'),
+        'USER': os.environ.get('SQL_USER', 'postgres'),
+        'PASSWORD': os.environ.get('SQL_PASSWORD', 'Aa280425'),
+        'HOST': os.environ.get('SQL_HOST', 'localhost'),
+        'PORT': os.environ.get('SQL_PORT', '5432'),
     }
 }
 
@@ -150,6 +151,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Use the custom login view defined in Backend.urls (path 'login/')
+LOGIN_URL = '/login/'
+# After successful login, default redirect (used by contrib.auth views)
+LOGIN_REDIRECT_URL = '/'
 
 # If GDAL is installed via Conda, point Django to the GDAL DLL so GeoDjango can find it on Windows.
 GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH', r"C:\Users\dnalj\miniconda3\envs\secuseo-py311\Library\bin\gdal.dll")

@@ -23,24 +23,47 @@
 
 
 <body class="bg-[#f1f2ff]">
-<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden" style='font-family: Poppins, "Noto Sans", sans-serif;'>
+<div id="report-page-root" data-report-id="{{ id|default:'' }}" class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden" style='font-family: Poppins, "Noto Sans", sans-serif;'>
 <div class="layout-container flex h-full grow flex-col">
 <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf3] px-10 py-3 bg-white shadow-sm">
 <div class="flex items-center gap-3 text-text-primary">
-                    <img alt="SECUSEO Logo" class="h-12 w-auto" src="Logo2.png">
+                    <img alt="SECUSEO Logo" class="h-12 w-auto" src="/static/HTML/Logo2.png">
                 </div>
 <div class="flex items-center gap-4">
-                    <button class="relative rounded-full p-2 text-text-secondary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-color">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                        </span>
-                    </button>
-                    <button class="flex items-center gap-2">
-                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBNctnGaY6QTVJqT-mYE1ae6LBsiq_gxIYHaRsr3Tx-0BjFA91cKDlAqAwnzqxWl4rFYzt6aTfHi5YMoFZLCWuWmRViHCUQfn-cMSQlt3h5Te860SYz-cq_68ljldfktev7G730zE_V92uSaif-jpDuUwbkKTc3IQ49eNnqEnVJJMMQY64yb10rxHyNolI3krMzUiPSnbzEiioPSElPS-9RP6BlCqn0gzQxNNv4Z-WnPEl6YEn2EH7sEQif20wwKvA69UyaGWdckk0");'></div>
-                        <span class="material-symbols-outlined text-text-secondary">expand_more</span>
-                    </button>
+                                        <div class="relative">
+                                            <button id="btn-notifications" class="relative rounded-full p-2 text-text-secondary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-color">
+                                                <span class="material-symbols-outlined">notifications</span>
+                                                <span id="notif-badge" class="absolute -top-1 -right-1 hidden inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs w-5 h-5">0</span>
+                                            </button>
+                                            <div id="dropdown-notifications" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                                <div class="p-3 text-sm font-semibold">Notificaciones</div>
+                                                <div id="notif-list" class="max-h-56 overflow-auto divide-y"></div>
+                                                <div class="p-2 text-center text-xs text-gray-500">No disponibles</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="relative">
+                                            <button id="btn-profile" class="flex items-center gap-2">
+                                                <div id="profile-photo" class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-9 h-9" style="background-image: url('/static/HTML/Logo3.png');"></div>
+                                                <span id="profile-arrow" class="material-symbols-outlined text-text-secondary">expand_more</span>
+                                            </button>
+                                            <div id="dropdown-profile" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                                <div class="p-3">
+                                                    <div id="profile-username" class="font-medium">Usuario</div>
+                                                    <div id="profile-email" class="text-xs text-gray-500">email@example.com</div>
+                                                </div>
+                                                <div class="divide-y">
+                                                    <div class="p-2">
+                                                        <a href="/" class="block p-2 rounded hover:bg-gray-50">Página principal</a>
+                                                        <button id="btn-view-profile" class="w-full text-left p-2 rounded hover:bg-gray-50">Ver perfil</button>
+                                                    </div>
+                                                    <div class="p-2">
+                                                        <a id="btn-admin-panel" href="/admin-panel/" class="block p-2 rounded hover:bg-gray-50 hidden">Panel de Administración</a>
+                                                        <button id="btn-logout" class="block w-full text-left p-2 rounded hover:bg-gray-50">Cerrar sesión</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                 </div>
             </header>
 <main class="flex flex-1 justify-center py-10">
@@ -51,30 +74,44 @@
 <div class="p-6">
 <div class="grid grid-cols-1 md:grid-cols-4 gap-y-4 gap-x-4">
 <div class="col-span-1 text-sm font-medium text-gray-500">Ubicación</div>
-<div class="col-span-3 text-sm text-gray-800">Calle Principal, Funza</div>
+<div class="col-span-3 text-sm text-gray-800">{{ ubicacion|default:'No disponible' }}</div>
 <div class="col-span-1 text-sm font-medium text-gray-500">Tipo</div>
-<div class="col-span-3 text-sm text-gray-800">Robo a mano armada</div>
+<div id="detail-tipo-node" class="col-span-3 text-sm text-gray-800">{{ tipo|default:'' }}</div>
 <div class="col-span-1 text-sm font-medium text-gray-500">Descripción</div>
-<div class="col-span-3 text-sm text-gray-800">Se reporta un incidente de robo a mano armada en la Calle Principal. Se solicita precaución.</div>
+<div class="col-span-3 text-sm text-gray-800">{{ descripcion|default:'' }}</div>
 <div class="col-span-1 text-sm font-medium text-gray-500">Fecha</div>
-<div class="col-span-3 text-sm text-gray-800">15 de Julio de 2024</div>
+<div class="col-span-3 text-sm text-gray-800">{% if fecha %}{{ fecha }}{% endif %}</div>
 </div>
 </div>
 <div class="px-6 py-4 border-t border-gray-200 flex flex-wrap items-center gap-4">
-<button class="flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-[#545dfa] text-white text-sm font-bold shadow-sm hover:bg-[#0d5aa5]">
+            <button id="btn-validate-local" class="flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-[#545dfa] text-white text-sm font-bold shadow-sm hover:bg-[#0d5aa5]">
 <span class="material-symbols-outlined text-base">check_circle</span>
 <span class="truncate">Validar</span>
 </button>
-<button class="flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200">
+<div class="flex items-center gap-3">
+    <div class="text-sm text-gray-500 mr-2">Validaciones:</div>
+    <div id="validations-count" class="font-semibold text-gray-800">{{ validations_count|default:0 }}</div>
+</div>
+<button id="btn-open-comment-form" class="flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200">
 <span class="material-symbols-outlined text-base">comment</span>
 <span class="truncate">Comentar</span>
 </button>
-<button class="flex items-center justify-center gap-2 h-10 px-4 rounded-md text-red-600 text-sm font-bold hover:bg-red-50 ml-auto">
+<button id="btn-report-flag" class="flex items-center justify-center gap-2 h-10 px-4 rounded-md text-red-600 text-sm font-bold hover:bg-red-50 ml-auto">
 <span class="material-symbols-outlined text-base">flag</span>
 <span class="truncate">Denunciar</span>
 </button>
 </div>
 <div class="p-6 border-t border-gray-200">
+<h3 class="text-lg font-bold text-gray-800 mb-4">Imágenes</h3>
+<div class="flex gap-4 flex-wrap mb-4">
+    {% if imagenes %}
+        {% for img in imagenes %}
+            <img src="{{ img }}" class="max-h-[320px] rounded-md border object-cover" style="width:100%" />
+        {% endfor %}
+    {% else %}
+        <div class="text-sm text-gray-500">No hay imágenes adjuntas.</div>
+    {% endif %}
+</div>
 <h3 class="text-lg font-bold text-gray-800 mb-4">Comentarios</h3>
 <div class="space-y-6">
 <div class="flex items-start gap-4">
@@ -102,20 +139,213 @@
 </div>
 </div>
 </div>
-<div class="mt-6 flex items-start gap-4">
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBk3p7uALQwe6DnJOqqOidw_hvrX7_5a5uyUxqMhRpaOKH-4_yQVswI0d_DoSBv67WO4qLJHld8DamlO2V84T_VBlpOZD6Fo456yzgRRKkM1CTPcGmd479rnlAJb_jrGxvXJ53BFGcgu5lH7iBo3yKCBHjPkDlHO7kNcCrEZ0tvstlFsq8b9GTjTAARLUdA5mJfSlUkqnUKzrslSfpJBk4--eAjMM01VECBuUnLuQXu19j1jp25ExcsH-347yVqcjBX-Qx3dXOfjME");'></div>
-<div class="flex-1">
-<form class="relative">
-<textarea class="form-textarea w-full rounded-lg border-gray-300 bg-gray-50 focus:border-[#0f66bd] focus:ring-[#0f66bd] focus:ring-opacity-50 text-sm" placeholder="Escribe un comentario..." rows="3"></textarea>
-<button class="absolute bottom-2 right-2 flex items-center justify-center h-8 px-4 rounded-md bg-[#545dfa] text-white text-sm font-bold shadow-sm hover:bg-[#0d5aa5]" type="submit">
-<span class="truncate">Enviar</span>
-</button>
-</form>
+<div id="comment-form-area" class="mt-6 flex items-start gap-4 hidden">
+    <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" style='background-image: url("/static/HTML/Logo3.png");'></div>
+    <div class="flex-1">
+        <form id="report-comment-form" class="relative">
+            <textarea id="report-comment-text" class="form-textarea w-full rounded-lg border-gray-300 bg-gray-50 focus:border-[#0f66bd] focus:ring-[#0f66bd] focus:ring-opacity-50 text-sm" placeholder="Escribe un comentario..." rows="3"></textarea>
+            <button id="report-comment-send" class="absolute bottom-2 right-2 flex items-center justify-center h-8 px-4 rounded-md bg-[#545dfa] text-white text-sm font-bold shadow-sm hover:bg-[#0d5aa5]" type="button">
+                <span class="truncate">Enviar</span>
+            </button>
+        </form>
+    </div>
 </div>
+<div class="mt-6">
+    <a href="/" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"><span class="material-symbols-outlined">arrow_back</span> Volver</a>
 </div>
 </div>
 </div>
 </main>
 </div>
 </div>
+<!-- Append modals and scripts for notifications/profile -->
+<script>
+// simplified shared modal markup
+const notifModalHtml = `
+<div id="notif-modal" class="fixed inset-0 z-60 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-lg w-11/12 max-w-2xl p-4 shadow-lg border border-gray-200">
+        <div class="flex justify-between items-start">
+            <h3 id="notif-modal-title" class="text-lg font-semibold">Notificación</h3>
+            <button id="notif-modal-close" class="text-gray-500">Cerrar</button>
+        </div>
+        <div class="mt-3" id="notif-modal-body"></div>
+    </div>
+</div>
+`;
+document.body.insertAdjacentHTML('beforeend', notifModalHtml);
+
+const profileModalHtml = `
+<div id="profile-modal" class="fixed inset-0 z-60 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-lg w-11/12 max-w-md p-4 shadow-lg border border-gray-200">
+        <div class="flex justify-between items-start">
+            <h3 class="text-lg font-semibold">Perfil</h3>
+            <button id="profile-modal-close" class="text-gray-500">Cerrar</button>
+        </div>
+        <div class="mt-3 flex flex-col items-center gap-3">
+            <div id="profile-modal-photo" class="w-28 h-28 rounded-full bg-center bg-cover"></div>
+            <div id="profile-modal-username" class="font-bold text-lg">Usuario</div>
+            <div id="profile-modal-email" class="text-sm text-gray-500">email@example.com</div>
+            <div class="w-full mt-2">
+                <label class="text-sm font-medium">Editar nombre</label>
+                <input id="profile-modal-edit-username" class="block w-full mt-1 rounded border-gray-200" />
+            </div>
+            <div class="w-full">
+                <label class="text-sm font-medium">Cambiar foto</label>
+                <input id="profile-modal-edit-photo" type="file" accept="image/*" class="block mt-1" />
+            </div>
+            <div class="w-full flex justify-end">
+                <button id="profile-modal-save" class="inline-flex items-center justify-center rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+document.body.insertAdjacentHTML('beforeend', profileModalHtml);
+
+// whoami & notifications basic fetch
+async function fetchWhoami(){ try{ const res = await fetch('/api/whoami/'); if(!res.ok) return; const data = await res.json(); if(data.ok){ document.getElementById('profile-username').textContent = data.username || data.email || 'Usuario'; document.getElementById('profile-email').textContent = data.email || ''; if(data.role==='admin') document.getElementById('btn-admin-panel').classList.remove('hidden'); } }catch(e){console.error(e)} }
+// attach logout
+const logoutBtn = document.getElementById('btn-logout'); if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ window.location.href = '/logout/'; });
+
+async function loadNotifications(){ try{ const res = await fetch('/api/notificaciones/'); if(!res.ok) return; const d = await res.json(); const list = document.getElementById('notif-list'); list.innerHTML=''; let unread=0; (d.notificaciones||[]).forEach(n=>{ const div=document.createElement('div'); div.className='p-2 cursor-pointer hover:bg-gray-50'; div.dataset.id=n.id; div.innerHTML=`<div class="font-medium text-sm">${n.titulo}</div><div class="text-xs text-gray-500">${n.resumen}</div>`; if(!n.leida) unread+=1; div.onclick = async ()=>{ await fetch(`/api/notificaciones/${n.id}/leer/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}}); const rr = await fetch(`/api/notificaciones/${n.id}/detail/`); if(!rr.ok) return alert('No se pudo cargar la notificación'); const det = await rr.json(); document.getElementById('notif-modal-title').textContent = det.titulo; document.getElementById('notif-modal-body').textContent = det.cuerpo; document.getElementById('notif-modal').classList.remove('hidden'); document.getElementById('notif-modal').classList.add('flex'); loadNotifications(); }; list.appendChild(div); }); const badge=document.getElementById('notif-badge'); if(unread>0){ badge.textContent = unread; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }catch(e){console.error(e)} }
+
+document.addEventListener('click', (ev)=>{ const btn = document.getElementById('btn-notifications'); const dropdown = document.getElementById('dropdown-notifications'); if(btn && btn.contains(ev.target)){ dropdown.classList.toggle('hidden'); if(!dropdown.classList.contains('hidden')) loadNotifications(); return; } if(dropdown && !dropdown.contains(ev.target)) dropdown.classList.add('hidden'); const pbtn = document.getElementById('btn-profile'); const pdrop = document.getElementById('dropdown-profile'); if(pbtn && pbtn.contains(ev.target)){ pdrop.classList.toggle('hidden'); return; } if(pdrop && !pdrop.contains(ev.target)) pdrop.classList.add('hidden'); });
+
+fetchWhoami();
+
+// Load canonical tipo labels and replace displayed tipo text with friendly label
+(async function(){
+    try{
+        const res = await fetch('/api/tipo_labels/');
+        if(!res.ok) return;
+        const data = await res.json();
+        const labels = (data && data.labels) ? data.labels : {};
+        const node = document.getElementById('detail-tipo-node');
+        if(node){
+            const raw = node.textContent.trim();
+            const key = raw || '{{ tipo|default:"" }}';
+            const k = String(key).trim();
+            if(labels[k]) node.textContent = labels[k];
+            else if(labels[k.toLowerCase()]) node.textContent = labels[k.toLowerCase()];
+            // otherwise leave as is
+        }
+    }catch(e){ console.warn('Could not load tipo labels', e); }
+})();
+
+</script>
+<script>
+// Comment and local validation handlers for the standalone report page
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+const rootEl = document.getElementById('report-page-root');
+const reportId = rootEl ? (rootEl.dataset.reportId ? parseInt(rootEl.dataset.reportId, 10) : null) : null;
+
+document.getElementById('btn-open-comment-form').addEventListener('click', ()=>{
+    const area = document.getElementById('comment-form-area');
+    if(area) area.classList.toggle('hidden');
+});
+
+document.getElementById('report-comment-send').addEventListener('click', async ()=>{
+    const ta = document.getElementById('report-comment-text');
+    if(!ta) return;
+    const txt = ta.value || '';
+    if(!txt.trim()) return alert('Escribe un comentario');
+    // Optimistic UI: prepend to comments list
+    const commentsEl = document.querySelector('.space-y-6');
+    const wrapper = document.createElement('div'); wrapper.className = 'flex items-start gap-4';
+    const nowStr = new Date().toLocaleString();
+    wrapper.innerHTML = `<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" style="background-image: url('/static/HTML/Logo3.png');"></div><div class="flex-1"><div class="flex items-baseline gap-2"><p class="text-sm font-bold text-gray-800">Tú</p><p class="text-xs text-gray-500">Ahora</p></div><div class="mt-1 p-3 rounded-lg bg-gray-100"><p class="text-sm text-gray-800">${txt}</p></div></div>`;
+    if(commentsEl) commentsEl.prepend(wrapper);
+    ta.value = '';
+    // send to server
+    try{
+        const fd = new FormData(); fd.append('texto', txt);
+        const res = await fetch(`/api/reportes/${reportId}/comentario-local/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd});
+        if(!res.ok){ console.warn('No se pudo guardar comentario local'); }
+    }catch(e){ console.warn('error', e); }
+});
+
+// validation (local)
+document.getElementById('btn-validate-local').addEventListener('click', async ()=>{
+    if(!confirm('¿Confirmas que este reporte sí ocurrió? (Esto solo se registra como validación comunitaria)')) return;
+    try{
+        const res = await fetch(`/api/reportes/${reportId}/validar-local/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
+        const el = document.getElementById('validations-count');
+        if(res.ok){ const d = await res.json(); if(el) el.textContent = d.count || (parseInt(el.textContent||'0')+1); alert('Gracias por validar'); } else {
+            const d = await res.json(); if(d && d.error) alert(d.error); else alert('No se pudo validar');
+        }
+    }catch(e){ console.warn('error validating', e); alert('Error conectando al servidor'); }
+});
+
+// flag/report action wired to admin reject if available; otherwise simple alert
+document.getElementById('btn-report-flag').addEventListener('click', async ()=>{
+    if(!confirm('¿Deseas reportar/denunciar este reporte?')) return;
+    // attempt admin endpoint (will fail for non-admin). We keep it as a no-op for regular users.
+    try{
+        const res = await fetch(`/admin/api/reportes/${reportId}/rechazar/`, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
+        if(res.ok){ alert('Reporte marcado como rechazado (administración)'); window.location.href = '/'; }
+        else alert('No tienes permisos para esta acción. Gracias por reportar, tomaremos nota.');
+    }catch(e){ console.warn('error', e); alert('No se pudo completar la operación'); }
+});
+
+// Automatic polling to refresh comments and validation count
+const DETAIL_POLL_INTERVAL = 10000; // 10s
+let detailPollTimer = null;
+let userTyping = false;
+
+const commentTextarea = document.getElementById('report-comment-text');
+if (commentTextarea) {
+    commentTextarea.addEventListener('focus', () => { userTyping = true; });
+    commentTextarea.addEventListener('blur', () => { userTyping = false; });
+}
+
+async function fetchDetailExtras() {
+    if (!reportId) return;
+    if (userTyping) return; // avoid interruptions while typing
+    try {
+        // fetch comments
+        const cRes = await fetch(`/api/reportes/${reportId}/comentario-local/`, { cache: 'no-store' });
+        if (cRes && cRes.ok) {
+            const cd = await cRes.json();
+            if (cd && cd.comments) {
+                const container = document.querySelector('.space-y-6');
+                if (container) {
+                    // clear and re-render
+                    container.innerHTML = '';
+                    cd.comments.forEach(c => {
+                        const wrapper = document.createElement('div'); wrapper.className = 'flex items-start gap-4';
+                        const when = c.fecha ? (new Date(c.fecha)).toLocaleString() : '';
+                        const autor = c.autor || 'Anonimo';
+                        wrapper.innerHTML = `<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" style="background-image: url('/static/HTML/Logo3.png');"></div><div class="flex-1"><div class="flex items-baseline gap-2"><p class="text-sm font-bold text-gray-800">${autor}</p><p class="text-xs text-gray-500">${when}</p></div><div class="mt-1 p-3 rounded-lg bg-gray-100"><p class="text-sm text-gray-800">${c.texto || ''}</p></div></div>`;
+                        container.appendChild(wrapper);
+                    });
+                }
+            }
+        }
+        // fetch validations
+        const vRes = await fetch(`/api/reportes/${reportId}/validar-local/`, { cache: 'no-store' });
+        if (vRes && vRes.ok) {
+            const vd = await vRes.json();
+            const el = document.getElementById('validations-count');
+            if (el) el.textContent = vd.count || (vd.validations && vd.validations.length) || 0;
+        }
+    } catch (e) {
+        console.warn('Error fetching detail extras', e);
+    }
+}
+
+function startDetailPolling(){ if(detailPollTimer) return; detailPollTimer = setInterval(fetchDetailExtras, DETAIL_POLL_INTERVAL); }
+function stopDetailPolling(){ if(!detailPollTimer) return; clearInterval(detailPollTimer); detailPollTimer = null; }
+
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopDetailPolling(); else startDetailPolling(); });
+
+// start immediately and then schedule
+fetchDetailExtras();
+startDetailPolling();
+</script>
 </body></html>

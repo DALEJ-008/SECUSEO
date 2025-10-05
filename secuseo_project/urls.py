@@ -20,8 +20,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Load app routes first so custom endpoints under /admin/* (admin APIs)
+    # are matched before Django's default admin site which also uses the
+    # 'admin/' prefix.
     path('', include('Backend.urls')),
+    path('admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:

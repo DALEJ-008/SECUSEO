@@ -327,14 +327,26 @@
 
                 const csrftoken = getCookie('csrftoken');
                 try {
+                    // ensure we have coordinates (recommended)
+                    if (!lat || !lng) {
+                        if (!confirm('No has seleccionado una ubicación exacta en el mapa. Deseas continuar sin coordenadas?')) {
+                            return;
+                        }
+                    }
+
                     const res = await fetch('/api/reportes/crear/', {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrftoken },
                         body: fd
                     });
                     if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        alert('Error creando reporte: ' + (err.errors || err.error || res.statusText));
+                        // try to show the server JSON (if any) so the developer/user can see the exact error
+                        const err = await res.json().catch(() => null);
+                        let details = '';
+                        try {
+                            if (err) details = JSON.stringify(err, null, 2);
+                        } catch (ee) { details = String(err); }
+                        alert('Error creando reporte: ' + res.status + ' ' + res.statusText + '\n' + details);
                         return;
                     }
                     // hide mini-map to prevent overlap, then show notification modal above everything

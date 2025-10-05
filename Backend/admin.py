@@ -7,13 +7,13 @@ class ZonaAdmin(admin.ModelAdmin):
 
 @admin.register(Reporte)
 class ReporteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'ubicacion', 'zona', 'prioridad', 'estado', 'fecha_creacion')
-    list_filter = ('prioridad', 'estado', 'zona')
+    list_display = ('id', 'ubicacion', 'zona', 'tipo', 'estado', 'fecha_creacion')
+    list_filter = ('tipo', 'zona')
     search_fields = ('ubicacion', 'descripcion')
 
 @admin.register(Comentario)
 class ComentarioAdmin(admin.ModelAdmin):
-    list_display = ('reporte', 'autor', 'fecha')
+    list_display = ('reporte', 'usuario', 'fecha_comentario')
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):

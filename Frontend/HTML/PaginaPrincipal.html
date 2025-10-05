@@ -92,24 +92,49 @@
                     <img alt="SECUSEO Logo" class="h-12 w-auto" src="{% static 'HTML/Logo2.png' %}">
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <button class="relative rounded-full p-2 text-text-secondary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-color">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                        </span>
-                    </button>
-                    <button class="flex items-center gap-2">
-                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBNctnGaY6QTVJqT-mYE1ae6LBsiq_gxIYHaRsr3Tx-0BjFA91cKDlAqAwnzqxWl4rFYzt6aTfHi5YMoFZLCWuWmRViHCUQfn-cMSQlt3h5Te860SYz-cq_68ljldfktev7G730zE_V92uSaif-jpDuUwbkKTc3IQ49eNnqEnVJJMMQY64yb10rxHyNolI3krMzUiPSnbzEiioPSElPS-9RP6BlCqn0gzQxNNv4Z-WnPEl6YEn2EH7sEQif20wwKvA69UyaGWdckk0");'></div>
-                        <span class="material-symbols-outlined text-text-secondary">expand_more</span>
-                    </button>
-                </div>
+                                <div class="flex items-center gap-4">
+                                        <!-- Notifications dropdown -->
+                                        <div class="relative">
+                                            <button id="btn-notifications" class="relative rounded-full p-2 text-text-secondary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-color">
+                                                <span class="material-symbols-outlined">notifications</span>
+                                                <span id="notif-badge" class="absolute -top-1 -right-1 hidden inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs w-5 h-5">0</span>
+                                            </button>
+                                            <div id="dropdown-notifications" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                                <div class="p-3 text-sm font-semibold">Notificaciones</div>
+                                                <div id="notif-list" class="max-h-56 overflow-auto divide-y"></div>
+                                                <div class="p-2 text-center text-xs text-gray-500">No disponibles</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Profile dropdown -->
+                                        <div class="relative">
+                                            <button id="btn-profile" class="flex items-center gap-2">
+                                                <div id="profile-photo" class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-9 h-9" style="background-image: url('{% static "HTML/Logo3.png" %}');"></div>
+                                                <span id="profile-arrow" class="material-symbols-outlined text-text-secondary">expand_more</span>
+                                            </button>
+                                            <div id="dropdown-profile" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                                <div class="p-3">
+                                                    <div id="profile-username" class="font-medium">Usuario</div>
+                                                    <div id="profile-email" class="text-xs text-gray-500">email@example.com</div>
+                                                </div>
+                                                <div class="divide-y">
+                                                    <div class="p-2">
+                                                        <a href="/" class="block p-2 rounded hover:bg-gray-50">Página principal</a>
+                                                        <button id="btn-view-profile" class="w-full text-left p-2 rounded hover:bg-gray-50">Ver perfil</button>
+                                                    </div>
+                                                    <div class="p-2">
+                                                        <a id="btn-admin-panel" href="/admin-panel/" class="block p-2 rounded hover:bg-gray-50 hidden">Panel de Administración</a>
+                                                        <button id="btn-logout" class="block w-full text-left p-2 rounded hover:bg-gray-50">Cerrar sesión</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                </div>
             </header>
 
             <div class="flex flex-1">
                 <!-- Sidebar -->
-                <aside class="w-96 flex-shrink-0 border-r border-gray-200 p-6" style="background-color: var(--background-color)">
+                <aside class="w-96 flex-shrink-0 border-r border-gray-200 p-6 bg-[var(--background-color)]">
                     <div class="flex flex-col gap-6">
                         <button id="report-new-btn" class="flex w-full items-center justify-center gap-2 rounded-md bg-primary-color py-3 text-black text-base font-bold shadow-sm hover:bg-opacity-90 transition-colors">
                             <span class="material-symbols-outlined">add_location_alt</span>
@@ -220,38 +245,106 @@
     // Variables globales
     let geojsonLayer = null;
     let neighborhoodData = {};
+    let geojsonDataGlobal = null;
     // Mapa de nombre de barrio -> capas (puede haber varios features con el mismo nombre)
     let neighborhoodLayers = {};
 
         // reportData will be computed from API responses (reportes reales)
+        // structure: { zonaName: { total: n, score: x, reports: [r,...] } }
         let reportData = {};
 
-        // Helper: buscar reportData intentando coincidencia exacta y luego case-insensitive
-        function findReportData(name) {
-            if (!name) return null;
-            const trimmed = name.trim();
-            if (reportData[trimmed]) return reportData[trimmed];
-            const lower = trimmed.toLowerCase();
-            for (const key in reportData) {
-                if (key.toLowerCase() === lower) return reportData[key];
-            }
+        // CSRF helper (for Django) - used by notification/comment POSTs
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
             return null;
         }
 
+        // Normalize neighborhood names to a canonical key for lookups
+        function normalizeName(name){
+            if(name === undefined || name === null) return '';
+            try{ return name.toString().trim().toLowerCase(); }catch(e){ return String(name).trim().toLowerCase(); }
+        }
+
+        // Helper: buscar reportData usando nombre normalizado
+        function findReportData(name) {
+            if (!name) return null;
+            const key = normalizeName(name);
+            return reportData[key] || null;
+        }
+
+        // Pretty-print a raw tipo/prioridad value into a human-friendly label
+        function prettyType(raw) {
+            if (!raw && raw !== 0) return '';
+            const s = String(raw).toLowerCase().trim();
+            const MAP = {
+                'robo': 'Robo',
+                'asalto': 'Asalto',
+                'hurto': 'Hurto',
+                'vandalismo': 'Vandalismo',
+                'iluminacion': 'Poca iluminación',
+                'accidente': 'Accidente de Tránsito',
+                'violencia': 'Violencia',
+                'consumo_drogas': 'Consumo/venta de drogas',
+                'consumo/venta de drogas': 'Consumo/venta de drogas',
+                'incendio': 'Incendio',
+                'amenaza': 'Amenaza',
+                'otro': 'Otro',
+                'robo_vehiculo': 'Robo de vehículos',
+                'acoso_callejero': 'Acoso callejero',
+                'prostitucion_ilegal': 'Prostitución ilegal',
+                'fraude_estafa': 'Fraudes y estafas'
+            };
+            if (MAP[s]) return MAP[s];
+            // keyword matches
+            if (s.includes('ilumin') || s.includes('luz')) return 'Poca iluminación';
+            if (s.includes('robo')) return 'Robo';
+            if (s.includes('asalto')) return 'Asalto';
+            if (s.includes('hurto')) return 'Hurto';
+            if (s.includes('violencia')) return 'Violencia';
+            if (s.includes('vandal')) return 'Vandalismo';
+            if (s.includes('accident')) return 'Accidente de Tránsito';
+            if (s.includes('drog')) return 'Consumo/venta de drogas';
+            if (s.includes('incend')) return 'Incendio';
+            if (s.includes('amenaz')) return 'Amenaza';
+            // fallback: replace underscores and capitalize
+            const cleaned = s.replace(/_/g, ' ');
+            return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        }
+
         // Función para calcular el color basado en reportes
+        // Map a normalized ratio (0..1) to a color between green and red.
+        function colorForRatio(ratio){
+            // clamp
+            const r = Math.max(0, Math.min(1, ratio));
+            // hue: 120 (green) -> 0 (red)
+            const hue = (1 - r) * 120;
+            // use HSL for smooth gradient
+            return `hsl(${hue}, 75%, ${r > 0.6 ? '45%' : r > 0.3 ? '55%' : '70%'})`;
+        }
+
         function getColor(neighborhoodName) {
             const data = findReportData(neighborhoodName);
-            if (!data || data.total === 0) {
+            if (!data || !data.reports || data.reports.length === 0) {
                 return '#90EE90'; // Verde claro para zonas sin reportes
             }
-
-            const riskScore = (data.highRisk * 3 + data.mediumRisk * 2 + data.lowRisk * 1) / data.total;
-
-            if (riskScore >= 2.5) return '#8B0000'; // Rojo muy intenso
-            if (riskScore >= 2.0) return '#DC143C'; // Rojo intenso
-            if (riskScore >= 1.5) return '#FF4500'; // Naranja-rojo
-            if (riskScore >= 1.0) return '#FF6347'; // Tomate
-            return '#FFA07A'; // Salmón claro
+            // compute normalized ratio relative to combined metric precomputed in loadReportMarkers
+            const maxCombined = reportData.__maxScore__ || 0;
+            const combined = data.__combined__ || ((data.score || 0) * Math.log(1 + (data.total || 0)));
+            if (maxCombined <= 0) {
+                // fallback: single report -> light orange
+                return colorForRatio(0.18);
+            }
+            let ratio = combined / maxCombined;
+            // Guarantee that any zone with at least one report is not pure green.
+            if ((data.total || 0) > 0) {
+                const minForAny = Math.min(0.12 + Math.log(1 + data.total) * 0.03, 0.25);
+                ratio = Math.max(ratio, minForAny);
+            }
+            // cap the ratio to avoid tiny counts becoming extremely red
+            ratio = Math.min(ratio, 0.98);
+            return colorForRatio(ratio);
         }
 
         // Función para estilo de cada feature
@@ -267,6 +360,19 @@
                 dashArray: '3',
                 fillOpacity: 0.7
             };
+        }
+
+        // Map raw prioridad/tipo to a risk level string (Alto/Medio/Bajo)
+        function mapPriorityToLevel(p){
+            if(!p) return 'Bajo';
+            const s = String(p).toLowerCase();
+            if(s.includes('alto') || s.includes('3') || s.includes('3.0')) return 'Alto';
+            if(s.includes('medio') || s.includes('2') || s.includes('2.0')) return 'Medio';
+            if(s.includes('asalto') || s.includes('violencia') || s.includes('robo')) return 'Alto';
+            // Poca iluminación se considera nivel Bajo en la vista principal
+            if(s.includes('ilumin') || s.includes('iluminacion')) return 'Bajo';
+            if(s.includes('hurto') || s.includes('vandal')) return 'Medio';
+            return 'Bajo';
         }
 
         // Función para resaltar feature al hover
@@ -291,43 +397,41 @@
             map.fitBounds(e.target.getBounds());
         }
 
-        // Función para manejar cada feature
+        // Función para manejar cada feature (muestra listado de reportes de la zona en el popup)
         function onEachFeature(feature, layer) {
             const neighborhoodName = feature.properties.BARRIO || feature.properties.NOMBRE || feature.properties.nombre || feature.properties.NAME || feature.properties.Name || feature.properties.name;
             const data = findReportData(neighborhoodName);
 
             let popupContent = `<div class="p-3">
-                <h3 class="font-bold text-lg mb-2">${neighborhoodName}</h3>`;
+                <h3 class="font-bold text-lg mb-2">${neighborhoodName || 'Sin nombre'}</h3>`;
 
-            if (data) {
-                popupContent += `
-                    <div class="space-y-1">
-                        <p class="text-sm"><strong>Total reportes:</strong> ${data.total}</p>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <span class="text-sm">Alto riesgo: ${data.highRisk}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                            <span class="text-sm">Riesgo medio: ${data.mediumRisk}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <span class="text-sm">Riesgo bajo: ${data.lowRisk}</span>
-                        </div>
-                    </div>`;
+            if (data && data.reports && data.reports.length) {
+                popupContent += `<p class="text-sm"><strong>Total reportes:</strong> ${data.total}</p>`;
+                popupContent += `<div class="mt-2 space-y-2">`;
+                // list each report briefly
+                data.reports.slice(0,10).forEach(r => {
+                    const desc = (r.descripcion || r.ubicacion || '').toString().slice(0,120);
+                    const priLabel = prettyType(r.tipo || r.prioridad || '');
+                    popupContent += `<div class="p-2 rounded bg-white border">`;
+                    popupContent += `<div class="flex items-center justify-between"><div class="text-sm font-semibold">${priLabel || 'Tipo desconocido'}</div><div class="text-xs text-gray-500">${r.fecha_creacion ? new Date(r.fecha_creacion).toLocaleString() : ''}</div></div>`;
+                    popupContent += `<div class="text-sm text-gray-700 mt-1">${desc}</div>`;
+                    popupContent += `</div>`;
+                });
+                if (data.reports.length > 10) popupContent += `<div class="text-xs text-gray-500 mt-2">Mostrando 10 de ${data.reports.length} reportes</div>`;
+                popupContent += `</div>`;
             } else {
                 popupContent += `<p class="text-sm text-gray-600">Sin reportes registrados</p>`;
             }
 
             popupContent += `</div>`;
 
-            layer.bindPopup(popupContent);
+            layer.bindPopup(popupContent, {maxWidth: 400});
 
-            // Guardar la capa por nombre de barrio para que el filtro pueda accederla
+            // Guardar la capa por nombre de barrio normalizado para que el filtro pueda accederla
             if (neighborhoodName) {
-                if (!neighborhoodLayers[neighborhoodName]) neighborhoodLayers[neighborhoodName] = [];
-                neighborhoodLayers[neighborhoodName].push(layer);
+                const key = normalizeName(neighborhoodName);
+                if (!neighborhoodLayers[key]) neighborhoodLayers[key] = [];
+                neighborhoodLayers[key].push(layer);
             }
 
             layer.on({
@@ -370,6 +474,8 @@
                 }
 
                 const geojsonData = await response.json();
+                // keep a global copy for client-side point-in-polygon lookups
+                geojsonDataGlobal = geojsonData;
                 console.log('GeoJSON cargado desde', usedUrl, '- features:', geojsonData.features && geojsonData.features.length);
 
                 // Crear la capa GeoJSON
@@ -409,7 +515,7 @@
                         return;
                     }
 
-                    const layers = neighborhoodLayers[val] || [];
+                    const layers = neighborhoodLayers[normalizeName(val)] || [];
                     // Resetear estilo de todos
                     geojsonLayer.eachLayer(l => geojsonLayer.resetStyle(l));
 
@@ -440,6 +546,37 @@
                     </div>
                 `;
             }
+        }
+
+        // Client-side point-in-polygon helper for GeoJSON Polygons/MultiPolygons
+        function _ringContains(x, y, ring) {
+            let inside = false;
+            let j = ring.length - 1;
+            for (let i = 0; i < ring.length; i++) {
+                const xi = ring[i][0], yi = ring[i][1];
+                const xj = ring[j][0], yj = ring[j][1];
+                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+                if (intersect) inside = !inside;
+                j = i;
+            }
+            return inside;
+        }
+
+        function pointInGeoJSON(lon, lat) {
+            if (!geojsonDataGlobal || !geojsonDataGlobal.features) return null;
+            for (let fi = 0; fi < geojsonDataGlobal.features.length; fi++) {
+                const f = geojsonDataGlobal.features[fi];
+                if (!f || !f.geometry) continue;
+                const g = f.geometry;
+                if (g.type === 'Polygon') {
+                    if (_ringContains(lon, lat, g.coordinates[0])) return f;
+                } else if (g.type === 'MultiPolygon') {
+                    for (let pi = 0; pi < g.coordinates.length; pi++) {
+                        if (_ringContains(lon, lat, g.coordinates[pi][0])) return f;
+                    }
+                }
+            }
+            return null;
         }
 
         // Crear leyenda
@@ -486,37 +623,145 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 reportMarkersLayer.clearLayers();
-                reportData = {}; // rebuild
+                // rebuild reportData with per-zone arrays and a score
+                reportData = {};
                 data.reportes.forEach(r => {
-                    // If coordinates are present, create a marker
+                    // if backend didn't assign a zona but we have coordinates and GeoJSON is loaded,
+                    // try to infer the zona on the client side so colors update immediately
+                    if ((!r.zona || r.zona === null || r.zona === 'Sin zona') && r.coordenadas && Array.isArray(r.coordenadas) && geojsonDataGlobal) {
+                        try {
+                            const lng = parseFloat(r.coordenadas[0]);
+                            const lat = parseFloat(r.coordenadas[1]);
+                            const f = pointInGeoJSON(lng, lat);
+                            if (f && f.properties) {
+                                const name = f.properties.BARRIO || f.properties.NOMBRE || f.properties.nombre || f.properties.NAME || f.properties.Name || f.properties.name;
+                                if (name) r.zona = name;
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    // create markers for reports that have coordinates (optional)
                     if (r.coordenadas && Array.isArray(r.coordenadas)) {
                         const [lng, lat] = r.coordenadas.length === 2 ? r.coordenadas : [r.coordenadas[0], r.coordenadas[1]];
-                        const pri = (r.prioridad || '').toLowerCase();
-                        const color = riskColors[pri] || '#888';
+                        const pri = prettyType(r.tipo || r.prioridad || '');
+                        const color = (pri.includes('alto') || pri.includes('muy')) ? '#b11' : (pri.includes('medio') ? '#f39c12' : '#2ecc71');
                         const marker = L.circleMarker([lat, lng], {
-                            radius: 7,
+                            radius: 6,
                             fillColor: color,
                             color: '#000',
                             weight: 1,
                             opacity: 1,
                             fillOpacity: 0.9
                         }).addTo(reportMarkersLayer);
-                        marker.bindPopup(`<div class="p-2"><h3 class="font-bold">Reporte</h3><p class="text-sm">${r.descripcion || ''}</p><p class="text-xs">Zona: ${r.zona || 'N/A'}</p></div>`);
+                        const markerTitle = prettyType(r.tipo || r.prioridad || '') || 'Reporte';
+                        marker.bindPopup(`<div class="p-2"><h3 class="font-bold">${markerTitle}</h3><p class="text-sm">${r.descripcion || ''}</p><p class="text-xs">Zona: ${r.zona || 'N/A'}</p></div>`);
                     }
 
-                    // accumulate report stats by zona
                     const z = r.zona || 'Sin zona';
-                    if (!reportData[z]) reportData[z] = { total: 0, highRisk: 0, mediumRisk: 0, lowRisk: 0 };
-                    reportData[z].total += 1;
-                    if (r.prioridad === 'muy_alto') reportData[z].highRisk += 2; // muy alto counts stronger
-                    else if (r.prioridad === 'alto') reportData[z].highRisk += 1;
-                    if (r.prioridad === 'medio') reportData[z].mediumRisk += 1;
-                    if (r.prioridad === 'bajo') reportData[z].lowRisk += 1;
+                    const zKey = normalizeName(z);
+                    if (!reportData[zKey]) reportData[zKey] = { total: 0, score: 0, reports: [], __displayName: z };
+                    reportData[zKey].total += 1;
+                    // determine weight by priority/type
+                    // configurable weight map for concrete risk types (more meaningful than generic priority)
+                    const TYPE_WEIGHTS = {
+                        'robo': 3.0,
+                        'asalto': 3.5,
+                        'violencia': 3.5,
+                        'hurto': 1.8,
+                        'vandalismo': 1.5,
+                        'iluminacion': 0.8,
+                        'accidente': 1.2,
+                        'consumo_drogas': 2.2,
+                        'consumo/venta de drogas': 2.2,
+                        'incendio': 3.5,
+                        'amenaza': 2.5,
+                        'otro': 1.0,
+                        'robo_vehiculo': 3.0,
+                        'acoso_callejero': 2.0,
+                        'prostitucion_ilegal': 2.0,
+                        'fraude_estafa': 1.5,
+                        // synonyms
+                        'violencia': 3.5,
+                        'violencia intrafamiliar': 3.2
+                    };
+                    const pr = (r.prioridad || r.tipo || '').toString().toLowerCase().trim();
+                    let w = 1;
+                    if (pr) {
+                        // exact match
+                        if (TYPE_WEIGHTS[pr]) w = TYPE_WEIGHTS[pr];
+                        else {
+                            // try to match keywords
+                            if (pr.includes('robo')) w = TYPE_WEIGHTS['robo'];
+                            else if (pr.includes('asalto')) w = TYPE_WEIGHTS['asalto'];
+                            else if (pr.includes('violencia')) w = TYPE_WEIGHTS['violencia'];
+                            else if (pr.includes('hurto')) w = TYPE_WEIGHTS['hurto'];
+                            else if (pr.includes('vandal')) w = TYPE_WEIGHTS['vandalismo'];
+                            else if (pr.includes('ilumin') || pr.includes('luz')) w = TYPE_WEIGHTS['iluminacion'];
+                            else if (pr.includes('accident')) w = TYPE_WEIGHTS['accidente'];
+                            else if (pr.includes('drog')) w = TYPE_WEIGHTS['consumo_drogas'];
+                            else if (pr.includes('incend')) w = TYPE_WEIGHTS['incendio'];
+                            else if (pr.includes('amenaz')) w = TYPE_WEIGHTS['amenaza'];
+                            else if (pr.includes('vehicul') && pr.includes('robo')) w = TYPE_WEIGHTS['robo_vehiculo'];
+                            else if (pr.includes('acoso')) w = TYPE_WEIGHTS['acoso_callejero'];
+                            else if (pr.includes('prostitucion')) w = TYPE_WEIGHTS['prostitucion_ilegal'];
+                            else if (pr.includes('fraud') || pr.includes('estaf')) w = TYPE_WEIGHTS['fraude_estafa'];
+                            else {
+                                // fallback to priority keywords
+                                if (pr.includes('muy') && pr.includes('alto')) w = 3;
+                                else if (pr.includes('alto')) w = 2;
+                                else if (pr.includes('medio')) w = 1.2;
+                                else if (pr.includes('bajo')) w = 0.6;
+                                else w = 1;
+                            }
+                        }
+                    }
+                    reportData[zKey].score += w;
+                    // push original report object for popup listing
+                    reportData[zKey].reports.push(r);
                 });
+
+                // compute a combined metric (score * f(total)) so both severity and count influence color
+                // use f(total) = log(1 + total) to give diminishing returns for high counts
+                let maxCombined = 0;
+                Object.keys(reportData).forEach(k => {
+                    const entry = reportData[k];
+                    const total = entry.total || 0;
+                    const combined = (entry.score || 0) * Math.log(1 + total);
+                    entry.__combined__ = combined;
+                    if (combined > maxCombined) maxCombined = combined;
+                });
+                reportData.__maxScore__ = maxCombined;
 
                 // After loading reports, re-style the geojson layer if already present
                 if (geojsonLayer) {
                     geojsonLayer.setStyle(style);
+                    // update popups by re-binding onEachFeature may be needed; easiest is to recreate the layer
+                    geojsonLayer.eachLayer(function(layer){
+                        // force popup content update by calling onEachFeature logic via feature
+                        const feat = layer.feature;
+                        // rebind popup using existing onEachFeature function
+                        if (feat) {
+                            const neighborhoodName = feat.properties.BARRIO || feat.properties.NOMBRE || feat.properties.nombre || feat.properties.NAME || feat.properties.Name || feat.properties.name;
+                            const dataZone = findReportData(neighborhoodName);
+                            let popupContent = `<div class="p-3"><h3 class="font-bold text-lg mb-2">${neighborhoodName || 'Sin nombre'}</h3>`;
+                            if (dataZone && dataZone.reports && dataZone.reports.length) {
+                                popupContent += `<p class="text-sm"><strong>Total reportes:</strong> ${dataZone.total}</p><div class="mt-2 space-y-2">`;
+                                dataZone.reports.slice(0,10).forEach(r => {
+                                    const desc = (r.descripcion || r.ubicacion || '').toString().slice(0,120);
+                                    const pri = prettyType(r.tipo || r.prioridad || '');
+                                    popupContent += `<div class="p-2 rounded bg-white border"><div class="flex items-center justify-between"><div class="text-sm font-semibold">${pri || 'Tipo desconocido'}</div><div class="text-xs text-gray-500">${r.fecha_creacion ? new Date(r.fecha_creacion).toLocaleString() : ''}</div></div>`;
+                                    popupContent += `<div class="text-sm text-gray-700 mt-1">${desc}</div></div>`;
+                                });
+                                if (dataZone.reports.length > 10) popupContent += `<div class="text-xs text-gray-500 mt-2">Mostrando 10 de ${dataZone.reports.length} reportes</div>`;
+                                popupContent += `</div>`;
+                            } else {
+                                popupContent += `<p class="text-sm text-gray-600">Sin reportes registrados</p>`;
+                            }
+                            popupContent += `</div>`;
+                            layer.bindPopup(popupContent, {maxWidth:400});
+                        }
+                    });
                 }
             } catch (err) {
                 console.warn('No se pudieron cargar reportes:', err);
@@ -532,24 +777,50 @@
                 const container = document.getElementById('recent-reports');
                 container.innerHTML = '';
                 data.reportes.forEach(r => {
+                    // Ensure cards reflect the same zona as the map: if backend didn't provide zona,
+                    // and we have coordinates and the geojson is loaded, infer client-side.
+                    if ((!r.zona || r.zona === null || r.zona === 'Sin zona') && r.coordenadas && Array.isArray(r.coordenadas) && geojsonDataGlobal) {
+                        try {
+                            const lng = parseFloat(r.coordenadas[0]);
+                            const lat = parseFloat(r.coordenadas[1]);
+                            const f = pointInGeoJSON(lng, lat);
+                            if (f && f.properties) {
+                                const name = f.properties.BARRIO || f.properties.NOMBRE || f.properties.nombre || f.properties.NAME || f.properties.Name || f.properties.name;
+                                if (name) r.zona = name;
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
                     const div = document.createElement('div');
                     div.className = 'flex items-center gap-4 rounded-md border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer bg-white';
-                    const color = r.prioridad === 'alto' ? 'bg-red-500' : (r.prioridad === 'medio' ? 'bg-yellow-500' : 'bg-green-500');
-                    div.innerHTML = `
-                        <div class="w-1.5 h-16 rounded-full ${color}"></div>
-                        <div class="flex-1">
-                            <p class="text-sm font-semibold ${r.prioridad === 'alto' ? 'text-red-600' : (r.prioridad === 'medio' ? 'text-yellow-600' : 'text-green-600')}">${r.prioridad ? ('Riesgo ' + r.prioridad.charAt(0).toUpperCase() + r.prioridad.slice(1)) : ''}</p>
-                            <p class="font-bold text-text-primary">${r.descripcion ? r.descripcion.slice(0,60) : r.ubicacion}</p>
-                            <p class="text-xs text-text-secondary">Zona: ${r.zona || 'Sin zona'}</p>
-                        </div>
-                        <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
+                    const level = mapPriorityToLevel(r.prioridad || r.tipo || '');
+                        const color = level === 'Alto' ? 'bg-red-500' : (level === 'Medio' ? 'bg-yellow-500' : 'bg-green-500');
+                        const textColor = level === 'Alto' ? 'text-red-600' : (level === 'Medio' ? 'text-yellow-600' : 'text-green-600');
+                        const typeLabel = prettyType(r.tipo || r.prioridad || '');
+                        div.innerHTML = `
+                            <div class="w-1.5 h-16 rounded-full ${color}"></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold ${textColor}">${typeLabel ? typeLabel : 'Riesgo ' + level}</p>
+                                <p class="font-bold text-text-primary">${r.descripcion ? r.descripcion.slice(0,60) : r.ubicacion}</p>
+                                <p class="text-xs text-text-secondary">Zona: ${r.zona || 'Sin zona'}</p>
+                            </div>
+                                                <button class="open-detail" data-id="${r.id}" aria-label="Ver detalle">
+                                                        <span class="material-symbols-outlined text-text-secondary">chevron_right</span>
+                                                </button>
                     `;
                     container.appendChild(div);
+                    // wire the detail button for this report to open a separate page
+                    const btn = div.querySelector('.open-detail');
+                    if(btn){ btn.addEventListener('click', ()=>{ window.location.href = `/reportes/${r.id}/`; }); }
                 });
             } catch (e) {
                 console.warn('No se pudieron renderizar reportes recientes', e);
             }
         }
+
+// Report detail UI is now a separate page at /reportes/<id>/ (uses template ValidacionyComentariosReportes.html)
+// The in-page modal overlay was removed to avoid duplicate UI and simplify navigation.
 
         // Controles personalizados
         document.getElementById('zoom-in').addEventListener('click', function() {
@@ -579,6 +850,24 @@
             }
         });
 
+        // Polling configuration (milliseconds)
+        const POLL_INTERVAL = 20000; // 20s default; adjust as needed
+        let pollTimer = null;
+
+        // Start / stop polling depending on page visibility
+        function startPolling() {
+            if (pollTimer) return;
+            pollTimer = setInterval(async () => {
+                await loadReportMarkers();
+                await renderRecentReports();
+            }, POLL_INTERVAL);
+        }
+        function stopPolling() {
+            if (!pollTimer) return;
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+
         // Inicializar todo cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
             loadGeoJSON();
@@ -588,6 +877,14 @@
 
             const btn = document.getElementById('report-new-btn');
             if (btn) btn.addEventListener('click', () => { window.location.href = '/reporte/form/'; });
+
+            // start polling
+            startPolling();
+        });
+
+        // Pause polling when page is hidden (tabs/background) to save resources
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) stopPolling(); else startPolling();
         });
 
         // Asegurar que el mapa se renderice correctamente
@@ -595,5 +892,73 @@
             map.invalidateSize();
         }, 100);
     </script>
+        <!-- Notifications/Profile scripts (shared with admin panel) -->
+        <script>
+        // reuse small parts of the admin panel scripts (whoami, notificaciones, profile modals)
+        async function fetchWhoami(){
+            try{ const res = await fetch('/api/whoami/'); if(!res.ok) return; const data = await res.json(); if(data.ok){ const pu = document.getElementById('profile-username'); const pe = document.getElementById('profile-email'); const pp = document.getElementById('profile-photo'); if(pu) pu.textContent = data.username || data.email || 'Usuario'; if(pe) pe.textContent = data.email || ''; if(pp && data.photo_url) pp.style.backgroundImage = `url(${data.photo_url})`; if(data.role === 'admin'){ const bap = document.getElementById('btn-admin-panel'); if(bap) bap.classList.remove('hidden'); } } }catch(e){console.error(e)}
+        }
+        async function loadNotifications(){ try{ const res = await fetch('/api/notificaciones/'); if(!res.ok) return; const d = await res.json(); const list = document.getElementById('notif-list'); list.innerHTML = ''; let unread = 0; (d.notificaciones || []).forEach(n=>{ const div = document.createElement('div'); div.className = 'p-2 cursor-pointer hover:bg-gray-50'; div.dataset.id = n.id; div.innerHTML = `<div class="font-medium text-sm">${n.titulo}</div><div class="text-xs text-gray-500">${n.resumen}</div>`; if(!n.leida) unread += 1; div.onclick = async ()=>{ await fetch(`/api/notificaciones/${n.id}/leer/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}}); const rr = await fetch(`/api/notificaciones/${n.id}/detail/`); if(!rr.ok) return alert('No se pudo cargar la notificación'); const detail = await rr.json(); alert(detail.titulo + '\n\n' + detail.cuerpo); loadNotifications(); }; list.appendChild(div); }); const badge = document.getElementById('notif-badge'); if(unread>0){ badge.textContent = unread; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); } }catch(e){console.error('load notis',e)} }
+        document.addEventListener('click', (ev)=>{ const btn = document.getElementById('btn-notifications'); const dropdown = document.getElementById('dropdown-notifications'); if(btn && btn.contains(ev.target)){ dropdown.classList.toggle('hidden'); if(!dropdown.classList.contains('hidden')) loadNotifications(); return; } if(dropdown && !dropdown.contains(ev.target)) dropdown.classList.add('hidden'); const pbtn = document.getElementById('btn-profile'); const pdrop = document.getElementById('dropdown-profile'); if(pbtn && pbtn.contains(ev.target)){ pdrop.classList.toggle('hidden'); return; } if(pdrop && !pdrop.contains(ev.target)) pdrop.classList.add('hidden'); });
+        fetchWhoami();
+        </script>
+            <!-- Profile/Notification modals appended -->
+            <script>
+            // notification detail modal
+            const notifModalHtml = `
+    <div id="notif-modal" class="fixed inset-0 z-60 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-2xl p-4 shadow-lg border border-gray-200">
+            <div class="flex justify-between items-start">
+                <h3 id="notif-modal-title" class="text-lg font-semibold">Notificación</h3>
+                <button id="notif-modal-close" class="text-gray-500">Cerrar</button>
+            </div>
+            <div class="mt-3" id="notif-modal-body"></div>
+        </div>
+    </div>
+    `;
+            document.body.insertAdjacentHTML('beforeend', notifModalHtml);
+
+            // profile view/edit modal (view includes edit controls)
+            const profileModalHtml = `
+    <div id="profile-modal" class="fixed inset-0 z-60 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-md p-4 shadow-lg border border-gray-200">
+            <div class="flex justify-between items-start">
+                <h3 class="text-lg font-semibold">Perfil</h3>
+                <button id="profile-modal-close" class="text-gray-500">Cerrar</button>
+            </div>
+            <div class="mt-3 flex flex-col items-center gap-3">
+                <div id="profile-modal-photo" class="w-28 h-28 rounded-full bg-center bg-cover"></div>
+                <div id="profile-modal-username" class="font-bold text-lg">Usuario</div>
+                <div id="profile-modal-email" class="text-sm text-gray-500">email@example.com</div>
+                <div class="w-full mt-2">
+                    <label class="text-sm font-medium">Editar nombre</label>
+                    <input id="profile-modal-edit-username" class="block w-full mt-1 rounded border-gray-200" />
+                </div>
+                <div class="w-full">
+                    <label class="text-sm font-medium">Cambiar foto</label>
+                    <input id="profile-modal-edit-photo" type="file" accept="image/*" class="block mt-1" />
+                </div>
+                <div class="w-full flex justify-end">
+                    <button id="profile-modal-save" class="inline-flex items-center justify-center rounded-md border border-transparent bg-[var(--primary-color)] px-4 py-2 text-sm font-medium text-white">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+            document.body.insertAdjacentHTML('beforeend', profileModalHtml);
+
+            // handlers for modals
+            document.getElementById('notif-list').addEventListener('click', async (ev)=>{ let el = ev.target; while(el && !el.dataset.id) el = el.parentElement; if(!el||!el.dataset.id) return; const id = el.dataset.id; await fetch(`/api/notificaciones/${id}/leer/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}}); const rr = await fetch(`/api/notificaciones/${id}/detail/`); if(!rr.ok) return alert('No se pudo cargar la notificación'); const detail = await rr.json(); document.getElementById('notif-modal-title').textContent = detail.titulo || ''; document.getElementById('notif-modal-body').textContent = detail.cuerpo || ''; document.getElementById('notif-modal').classList.remove('hidden'); document.getElementById('notif-modal').classList.add('flex'); loadNotifications(); });
+            document.getElementById('notif-modal-close').addEventListener('click', ()=>{ const m = document.getElementById('notif-modal'); m.classList.remove('flex'); m.classList.add('hidden'); });
+
+            document.getElementById('btn-view-profile').addEventListener('click', async ()=>{ const m = document.getElementById('profile-modal'); document.getElementById('profile-modal-username').textContent = document.getElementById('profile-username').textContent; document.getElementById('profile-modal-email').textContent = document.getElementById('profile-email').textContent; const bg = document.getElementById('profile-photo').style.backgroundImage; document.getElementById('profile-modal-photo').style.backgroundImage = bg; document.getElementById('profile-modal-edit-username').value = document.getElementById('profile-username').textContent || ''; m.classList.remove('hidden'); m.classList.add('flex'); });
+            document.getElementById('profile-modal-close').addEventListener('click', ()=>{ const m = document.getElementById('profile-modal'); m.classList.remove('flex'); m.classList.add('hidden'); });
+            document.getElementById('profile-modal-save').addEventListener('click', async ()=>{ const fd = new FormData(); const name = document.getElementById('profile-modal-edit-username').value; if(name) fd.append('username', name); const photo = document.getElementById('profile-modal-edit-photo').files[0]; if(photo) fd.append('photo', photo); const res = await fetch('/api/profile/update/', {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd}); if(res.ok){ const d = await res.json(); if(d.photo_url) document.getElementById('profile-photo').style.backgroundImage = `url(${d.photo_url})`; document.getElementById('profile-username').textContent = d.username; alert('Perfil actualizado'); const m = document.getElementById('profile-modal'); m.classList.remove('flex'); m.classList.add('hidden'); } else alert('Error al guardar'); });
+            // fetch whoami initially
+                fetchWhoami();
+                // logout button handler
+                const logoutBtn = document.getElementById('btn-logout');
+                if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ window.location.href = '/logout/'; });
+            </script>
 </body>
 </html>
