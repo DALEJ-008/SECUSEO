@@ -1,10 +1,3 @@
-"""
-Cleaned models derived from `inspectdb` that map to your existing PostgreSQL tables in Spanish.
-
-All models that reflect existing manually-created tables are set with `managed = False`
-so Django won't try to create/alter them with migrations.
-"""
-
 from django.db import models
 
 from django.conf import settings

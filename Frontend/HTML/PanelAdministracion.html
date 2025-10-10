@@ -549,6 +549,7 @@ function attachUserActions(){
         <div class="mt-6 flex gap-3">
           <button id="modal-approve" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-green-600 text-white text-sm font-medium shadow-sm hover:bg-green-700">Aprobar</button>
           <button id="modal-reject" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-red-50 text-red-600 text-sm font-medium border border-red-100 hover:bg-red-100">Rechazar</button>
+          <button id="modal-delete" style="display:none" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-red-700 text-white text-sm font-medium shadow-sm hover:bg-red-800">Eliminar permanentemente</button>
         </div>
       </div>
 
@@ -587,11 +588,11 @@ function attachViewActions(){
         'consumo_drogas': 'Consumo/Venta de Drogas',
         'incendio': 'Incendio',
         'amenaza': 'Amenaza',
-        'otro': 'Otro',
         'robo_vehiculo': 'Robo de Vehículos',
         'acoso_callejero': 'Acoso Callejero',
         'prostitucion_ilegal': 'Prostitución Ilegal',
-        'fraude_estafa': 'Fraudes y Estafas'
+        'fraude_estafa': 'Fraudes y Estafas',
+        'otro': 'Otro'
       };
       const tipoKey = (d.tipo || '').toString().trim();
       const prettyTipo = TYPE_LABELS[tipoKey] || tipoKey || '—';
@@ -667,6 +668,21 @@ function attachViewActions(){
         const res = await fetch(`/admin/api/reportes/${d.id}/rechazar/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
         if(res.ok){ alert('Reporte rechazado'); modal.classList.remove('flex'); modal.classList.add('hidden'); fetchPending(); } else { alert('Error al rechazar'); }
       }}
+
+      // wire delete button for validated reports
+      const deleteBtn = document.getElementById('modal-delete');
+      if(deleteBtn){
+        if(d.estado && d.estado.toLowerCase() === 'validado'){
+          deleteBtn.style.display = '';
+        } else {
+          deleteBtn.style.display = 'none';
+        }
+        deleteBtn.onclick = async ()=>{
+          if(!confirm('Eliminar permanentemente el reporte #' + d.id + '? Esta acción es irreversible.')) return;
+          const res = await fetch(`/admin/api/reportes/${d.id}/eliminar/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
+          if(res.ok){ alert('Reporte eliminado'); modal.classList.remove('flex'); modal.classList.add('hidden'); fetchPending(); } else { alert('Error al eliminar reporte'); }
+        };
+      }
 
       // close handler removes the map
       const closeModal = ()=>{ modal.classList.remove('flex'); modal.classList.add('hidden'); if(window._modalMap){ try{ window._modalMap.remove(); }catch(e){} window._modalMap = null; } };

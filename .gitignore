@@ -68,5 +68,8 @@ Desktop.ini
 # Node
 node_modules/
 
+.env
+
+
 # GeoJSON or large resources (optional keep if you want them versioned)
 # Recoursos/Barrios_Municipio_de_Funza_2008_1%3A15000_(Capa).geojson

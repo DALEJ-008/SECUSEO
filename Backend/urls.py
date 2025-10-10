@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/api/reportes/pending/', views.api_admin_pending_reportes, name='api_admin_pending_reportes'),
     path('admin/api/reportes/<int:pk>/validar/', views.api_admin_validar_reporte, name='api_admin_validar_reporte'),
     path('admin/api/reportes/<int:pk>/rechazar/', views.api_admin_rechazar_reporte, name='api_admin_rechazar_reporte'),
+    path('admin/api/reportes/<int:pk>/eliminar/', views.api_admin_eliminar_reporte, name='api_admin_eliminar_reporte'),
     path('admin/api/reportes/<int:pk>/detail/', views.api_admin_reporte_detail, name='api_admin_reporte_detail'),
     # User management
     path('admin/api/users/', views.api_admin_users, name='api_admin_users'),
@@ -37,4 +38,5 @@ urlpatterns = [
     path('api/notificaciones/<int:pk>/detail/', views.api_notificacion_detail, name='api_notificacion_detail'),
     path('api/whoami/', views.api_whoami, name='api_whoami'),
     path('api/profile/update/', views.api_profile_update, name='api_profile_update'),
+    path('verify-phone/', views.verify_phone, name='verify_phone'),
 ]

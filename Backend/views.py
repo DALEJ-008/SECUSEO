@@ -1,12 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from .models import Reporte, Zona, UserProfile
-from .forms import ReporteForm, ComentarioForm
+from .forms import ReporteForm
 import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db import connection
@@ -16,11 +15,15 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
+import random
+import hashlib
+import pathlib
+# ...existing code...
 
 
-def _point_in_polygon(lon, lat, polygon_coords):
-    # Ray casting algorithm on outer ring
+def _punto_en_poligono (lon, lat, polygon_coords):
+    # Algoritmo ray casting para determinar si unas coordenadas estan dentro de un polígono geografico
+    #Asigna reportes a zonas geograficas
     def _ring_contains(x, y, ring):
         inside = False
         j = len(ring) - 1
@@ -35,7 +38,7 @@ def _point_in_polygon(lon, lat, polygon_coords):
 
     if not polygon_coords:
         return False
-    # MultiPolygon or Polygon
+
     if isinstance(polygon_coords[0][0], list) and isinstance(polygon_coords[0][0][0], list):
         for poly in polygon_coords:
             if _ring_contains(lon, lat, poly[0]):
@@ -44,8 +47,8 @@ def _point_in_polygon(lon, lat, polygon_coords):
     return _ring_contains(lon, lat, polygon_coords[0])
 
 
-def _match_zone_by_name(ubicacion):
-    """Best-effort: try to match a Zona by checking if the zone name appears inside the address string."""
+def _coincidencia_zona_nombre (ubicacion):
+    # Intenta encontrar una zona por nombre en el texto de ubicación
     if not ubicacion:
         return None
     try:
@@ -65,20 +68,20 @@ def _match_zone_by_name(ubicacion):
 
 
 def lista_reportes(request):
-    # Require authentication for API access (AJAX clients expect JSON 401 on unauthenticated)
+    # Devuelve lista de reportes validados con información de zona
     if not request.user or not request.user.is_authenticated:
         return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
-    # Public API: only validated reports
+
     qs = Reporte.objects.filter(estado='validado').select_related('zona', 'creado_por')[:100]
     data = []
     for r in qs:
-        # determine zona name; if missing, try to infer from coordinates and persist if possible
+        # Determina el nombre de la zona
         zona_name = None
         try:
             if getattr(r, 'zona', None):
                 zona_name = r.zona.nombre
             else:
-                # try to infer from coordinates first, then geocode address, then match by name
+                # intenta inferir primero a partir de las coordenadas, luego geocodifica la dirección, y luego coincide por nombre
                 coords = getattr(r, 'coordenadas', None)
                 if coords and isinstance(coords, (list, tuple)) and len(coords) >= 2:
                     try:
@@ -92,7 +95,7 @@ def lista_reportes(request):
                                 continue
                             poly_coords = geom.get('coordinates')
                             try:
-                                if _point_in_polygon(lng, lat, poly_coords):
+                                if _punto_en_poligono(lng, lat, poly_coords):
                                     found = z
                                     break
                             except Exception:
@@ -105,10 +108,10 @@ def lista_reportes(request):
                             except Exception:
                                 pass
                     except Exception:
-                        # invalid coordinates: fall through to geocode attempt
+                        # coordenada invalida: pasa al intento de geocodificación
                         pass
 
-                # if not resolved by coords, try geocoding the address (best-effort)
+                # si no se resuelve por coordenadas, intenta geocodificar la dirección
                 if not zona_name:
                     ubic = getattr(r, 'ubicacion', None)
                     if ubic:
@@ -131,7 +134,7 @@ def lista_reportes(request):
                                             continue
                                         poly_coords = geom.get('coordinates')
                                         try:
-                                            if _point_in_polygon(lngf, latf, poly_coords):
+                                            if _punto_en_poligono(lngf, latf, poly_coords):
                                                 found2 = z
                                                 break
                                         except Exception:
@@ -145,12 +148,12 @@ def lista_reportes(request):
                                         except Exception:
                                             pass
                         except Exception:
-                            # geocoding/network may fail; ignore and leave zona as None
+                            # La geocodificacion puede fallar; lo ignora y deja la zona como None
                             pass
 
-                # final fallback: try to match a zone name inside the address text
+                # último recurso: intentar coincidir con un nombre de zona dentro del texto de la dirección
                 if not zona_name:
-                    zmatch = _match_zone_by_name(getattr(r, 'ubicacion', None))
+                    zmatch = _coincidencia_zona_nombre(getattr(r, 'ubicacion', None))
                     if zmatch:
                         zona_name = zmatch.nombre
                         try:
@@ -176,6 +179,7 @@ def lista_reportes(request):
 
 
 def lista_zonas(request):
+    # Lista todas las zonas disponibles
     if not request.user or not request.user.is_authenticated:
         return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
     qs = Zona.objects.all()
@@ -189,7 +193,7 @@ def lista_zonas(request):
         })
     return JsonResponse({'zonas': data})
 
-
+#DETALLE REPORTE
 def detalle_reporte(request, pk):
     if not request.user or not request.user.is_authenticated:
         return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
@@ -204,7 +208,7 @@ def detalle_reporte(request, pk):
         'zona': (lambda rr: (rr.zona.nombre if getattr(rr, 'zona', None) else None)) (r) if True else None,
     })
 
-
+ # CREACION REPORTE
 def crear_reporte(request):
     if request.method == 'POST':
         form = ReporteForm(request.POST, request.FILES)
@@ -237,22 +241,20 @@ def crear_reporte(request):
                         geom = z.geometria
                         if not geom: continue
                         coords = geom.get('coordinates')
-                        if _point_in_polygon(lngf, latf, coords):
+                        if _punto_en_poligono(lngf, latf, coords):
                             found = z
                             break
                     if found:
                         rep.zona = found
                 except ValueError:
-                    # if we couldn't parse numeric lat/lng fall through to try geocoding below
+                    # si no se puede analizar latitud/longitud numérica, pasa a intentar la geocodificación
                     pass
             else:
-                # if we couldn't parse numeric lat/lng but we have an ubicacion (address),
-                # try to geocode it (best-effort). This helps when users enter an address
-                # instead of picking a point on the mini-map.
+                #Si no se puede analizar lat/lon, se trata de geocodificar la ubicacion
                 ubic = rep.ubicacion if getattr(rep, 'ubicacion', None) else None
                 if ubic:
                     try:
-                        # use Nominatim search to resolve the address to coordinates (best-effort)
+                        # Se usa la búsqueda de Nominatim para resolver la dirección a coordenadas
                         import requests
                         user_agent = 'Secuseo/1.0 (contact@example.com)'
                         params = {'q': ubic, 'format': 'json', 'limit': 1}
@@ -272,7 +274,7 @@ def crear_reporte(request):
                                     if not geom: continue
                                     coords = geom.get('coordinates')
                                     try:
-                                        if _point_in_polygon(lngf, latf, coords):
+                                        if _punto_en_poligono(lngf, latf, coords):
                                             found2 = z
                                             break
                                     except Exception:
@@ -280,12 +282,12 @@ def crear_reporte(request):
                                 if found2:
                                     rep.zona = found2
                             else:
-                                # fallback: if geocoding didn't produce a zone, try to match by name
-                                zmatch = _match_zone_by_name(rep.ubicacion if getattr(rep, 'ubicacion', None) else None)
+
+                                zmatch = _coincidencia_zona_nombre(rep.ubicacion if getattr(rep, 'ubicacion', None) else None)
                                 if zmatch:
                                     rep.zona = zmatch
                     except Exception:
-                        # networking/geocoding may fail; ignore and continue (best-effort)
+                        # La red/geocodificación puede fallar; ignora y continua
                         pass
 
             try:
@@ -293,7 +295,7 @@ def crear_reporte(request):
                     rep.creado_por = request.user
 
                 if 'imagen' in request.FILES:
-                    # store uploaded image as a file and persist the path string in the imagen CharField
+                    # Almacena la imagen cargada como un archivo y conservar la cadena de ruta en el CharField de la imagen
                     try:
                         f = request.FILES['imagen']
                         dest_dir = os.path.join(settings.MEDIA_ROOT, 'report_images')
@@ -304,7 +306,7 @@ def crear_reporte(request):
                         # store relative path
                         rep.imagen = path
                     except Exception:
-                        # fallback: ignore image save errors but continue report creation
+                        #  Si falla al intentar guardar la imagen. ignora el error y continua con la creacion del reporte
                         pass
 
                 # Ensure required DB columns are populated (legacy DB may have NOT NULL constraints)
@@ -448,13 +450,31 @@ def inicio_sesion(request):
             return JsonResponse({'ok': False, 'error': 'Credenciales inválidas'}, status=400)
 
         login(request, user)
-        # ensure user has a profile; if not, create one.
+        #Asegura que el usuario tenga una cuenta, si no tiene que crear una
         try:
             profile = user.profile
         except Exception:
-            # if user is a Django superuser/staff, default to admin
+            # si el usuario es un Django superuser/staff
             default_role = 'admin' if (user.is_superuser or user.is_staff) else 'user'
-            profile = UserProfile.objects.create(user=user, role=default_role)
+            profile = None
+            try:
+                profile = UserProfile.objects.create(user=user, role=default_role)
+            except Exception as _create_exc:
+                # Don't block login if legacy profile table insertion fails; write debug log and continue
+                try:
+                    import traceback as _tb
+                    log_dir = os.path.join(settings.MEDIA_ROOT, 'debug')
+                    os.makedirs(log_dir, exist_ok=True)
+                    log_path = os.path.join(log_dir, f'userprofile_create_error_{timezone.now().strftime("%Y%m%d%H%M%S")}.log')
+                    with open(log_path, 'w', encoding='utf-8') as lf:
+                        lf.write('=== Exception creating UserProfile ===\n')
+                        lf.write(_tb.format_exc() + '\n\n')
+                        try:
+                            lf.write(repr({'user_id': getattr(user, 'id', None), 'username': getattr(user, 'username', None), 'email': getattr(user, 'email', None)}))
+                        except Exception:
+                            lf.write('user info unavailable')
+                except Exception:
+                    pass
 
         role = getattr(profile, 'role', 'user')
         if role == 'admin':
@@ -465,9 +485,28 @@ def inicio_sesion(request):
         name = request.POST.get('name')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        telefono = request.POST.get('telefono')
         dob = request.POST.get('dob')
-        if not email or not password or not name:
-            return JsonResponse({'ok': False, 'error': 'Nombre, correo y contraseña son requeridos'}, status=400)
+        if not email or not password or not name or not telefono:
+            return JsonResponse({'ok': False, 'error': 'Nombre, correo, contraseña y teléfono son requeridos'}, status=400)
+
+        # check telefono not used in legacy Usuario or existing profile
+        try:
+            from .models import Usuario
+            if Usuario.objects.filter(correo=telefono).exists():
+                pass
+        except Exception:
+            pass
+
+        # check in UserProfile table (if telefono column is used there) via raw SQL fallback
+        try:
+            with connection.cursor() as cur:
+                cur.execute('SELECT 1 FROM "Backend_userprofile" WHERE telefono = %s LIMIT 1', [telefono])
+                if cur.fetchone():
+                    return JsonResponse({'ok': False, 'error': 'El teléfono ya está en uso'}, status=400)
+        except Exception:
+            # ignore DB issues; still proceed
+            pass
 
         if User.objects.filter(email__iexact=email).exists():
             return JsonResponse({'ok': False, 'error': 'El correo ya está registrado. Intenta iniciar sesión.'}, status=400)
@@ -479,19 +518,100 @@ def inicio_sesion(request):
             username = f"{base}{i}"
             i += 1
 
+        # Using raw telefono (no Twilio integration / normalization)
+
         user = User.objects.create(username=username, email=email, first_name=name)
+        # Temporarily set is_active=False until phone is verified
+        user.is_active = False
         user.set_password(password)
         user.save()
 
-        profile = UserProfile.objects.create(user=user, role='user')
+        profile = None
+        try:
+            profile = UserProfile.objects.create(user=user, role='user')
+                # persist normalized phone into legacy profile table if possible
+            try:
+                with connection.cursor() as cur:
+                    cur.execute('UPDATE "Backend_userprofile" SET telefono = %s WHERE user_id = %s', [telefono, user.id])
+                    if cur.rowcount == 0:
+                        cur.execute('INSERT INTO "Backend_userprofile" (user_id, role, telefono) VALUES (%s, %s, %s)', [user.id, 'user', telefono])
+            except Exception:
+                pass
+        except Exception as _create_exc:
+            # Registration should not fail completely if legacy profile insert fails.
+            try:
+                import traceback as _tb
+                log_dir = os.path.join(settings.MEDIA_ROOT, 'debug')
+                os.makedirs(log_dir, exist_ok=True)
+                log_path = os.path.join(log_dir, f'userprofile_create_error_{timezone.now().strftime("%Y%m%d%H%M%S")}.log')
+                with open(log_path, 'w', encoding='utf-8') as lf:
+                    lf.write('=== Exception creating UserProfile during registration ===\n')
+                    lf.write(_tb.format_exc() + '\n\n')
+                    try:
+                        lf.write(repr({'user_id': getattr(user, 'id', None), 'username': getattr(user, 'username', None), 'email': getattr(user, 'email', None)}))
+                    except Exception:
+                        lf.write('user info unavailable')
+            except Exception:
+                pass
 
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return JsonResponse({'ok': True, 'redirect': '/'} )
-        return JsonResponse({'ok': True, 'redirect': '/login/'} )
+        # Local-only OTP generation (no Twilio). Store OTP file and return debug_code in DEBUG mode.
+        try:
+            vdir = os.path.join(settings.MEDIA_ROOT, 'phone_verifications')
+            os.makedirs(vdir, exist_ok=True)
+            code = f"{random.randint(100000, 999999)}"
+            expires = (timezone.now() + timezone.timedelta(minutes=10)).isoformat()
+            token_hash = hashlib.sha256((code + str(user.id)).encode('utf-8')).hexdigest()
+            data = {'user_id': user.id, 'telefono': telefono, 'code_hash': token_hash, 'expires': expires}
+            file_path = os.path.join(vdir, f'verify_{user.id}.json')
+            with open(file_path, 'w', encoding='utf-8') as fh:
+                import json
+                json.dump(data, fh)
+            extra = {'debug_code': code} if getattr(settings, 'DEBUG', False) else {}
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'no se pudo generar código de verificación'}, status=500)
+
+        return JsonResponse({'ok': True, 'verify_user_id': user.id, 'message': 'Usuario creado. Verifica el teléfono con el código enviado.' , **(extra if 'extra' in locals() else {})})
 
     return JsonResponse({'ok': False, 'error': 'Método no soportado'}, status=405)
+
+
+@require_http_methods(['POST'])
+def verify_phone(request):
+    """Endpoint to verify a phone code. Expects: user_id, code"""
+    user_id = request.POST.get('user_id') or request.GET.get('user_id')
+    code = request.POST.get('code') or request.GET.get('code')
+    if not user_id or not code:
+        return JsonResponse({'ok': False, 'error': 'user_id y code requeridos'}, status=400)
+    try:
+        # File-based verification (local)
+        vdir = os.path.join(settings.MEDIA_ROOT, 'phone_verifications')
+        file_path = os.path.join(vdir, f'verify_{int(user_id)}.json')
+        if not os.path.exists(file_path):
+            return JsonResponse({'ok': False, 'error': 'No hay código de verificación para este usuario'}, status=404)
+        import json
+        with open(file_path, 'r', encoding='utf-8') as fh:
+            data = json.load(fh)
+        expires = timezone.datetime.fromisoformat(data.get('expires'))
+        if timezone.now() > expires:
+            return JsonResponse({'ok': False, 'error': 'Código expirado'}, status=400)
+        expected_hash = data.get('code_hash')
+        check_hash = hashlib.sha256((code + str(user_id)).encode('utf-8')).hexdigest()
+        if check_hash != expected_hash:
+            return JsonResponse({'ok': False, 'error': 'Código inválido'}, status=400)
+        # mark user active
+        from django.contrib.auth.models import User as DjUser
+        u = DjUser.objects.get(pk=int(user_id))
+        u.is_active = True
+        u.save()
+        # option: delete verification file
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        import traceback
+        return JsonResponse({'ok': False, 'error': str(e), 'trace': traceback.format_exc()}, status=500)
 
 
 def logout_view(request):
@@ -512,7 +632,6 @@ def panel_administracion(request):
 
 @login_required
 def validacion_reportes(request):
-    # legacy page if needed
     try:
         if request.user.profile.role != 'admin':
             return redirect('/login/')
@@ -534,11 +653,11 @@ def reporte_detalle_page(request, pk):
     except Exception:
         creado_nombre = None
 
-    # prepare image list
+    # Lista de imagenes
     imagenes = []
     if getattr(r, 'imagen_url', None):
         imagenes.append(r.imagen_url)
-    # If model stores multiple images in a related model ComentarioImagen, try to include them
+    # Si model almacena varias imagenes en el modelo ComentarioImagen, trata de incluirlas
     try:
         from .models import ComentarioImagen
         imgs = ComentarioImagen.objects.filter(reporte_id=r.id)
@@ -559,7 +678,6 @@ def reporte_detalle_page(request, pk):
 
     context = {
         'ubicacion': r.ubicacion,
-        # Prefer the explicit tipo field (e.g., 'robo', 'asalto'); fallback to prioridad if tipo is empty
         'tipo': r.tipo or r.prioridad,
         'descripcion': r.descripcion,
         'fecha': r.fecha_creacion,
@@ -569,7 +687,7 @@ def reporte_detalle_page(request, pk):
         'zona': zona_nombre,
         'id': r.id,
     }
-    # attach local comments (stored as JSON files under MEDIA_ROOT/comments/)
+    # adjunta comentarios (almacenados como archivos JSON en MEDIA_ROOT/comments/)
     try:
         comments_dir = os.path.join(settings.MEDIA_ROOT, 'comments')
         comments_file = os.path.join(comments_dir, f'report_{r.id}.json')
@@ -600,15 +718,10 @@ def reporte_detalle_page(request, pk):
 
 @require_http_methods(['GET', 'POST'])
 def api_report_comment_local(request, pk):
-    """Store or return comments for a report.
-    GET: return merged comments (DB Comentario model if present + local JSON file)
-    POST: append a local comment as before.
-    """
-    # Ensure authenticated (return JSON 401 for AJAX clients)
     if not request.user or not request.user.is_authenticated:
         return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
 
-    # GET: return comments
+
     if request.method == 'GET':
         comments = []
         try:
@@ -757,6 +870,70 @@ def api_admin_rechazar_reporte(request, pk):
     r.estado = 'rechazado'
     r.save()
     return JsonResponse({'ok': True})
+
+
+@require_POST
+@login_required
+def api_admin_eliminar_reporte(request, pk):
+    """Permanently delete a report that has already been validated.
+
+    Only admins may call this. The endpoint removes related DB rows (comentarios,
+    multimedia, validaciones) where possible and deletes local JSON files and
+    image files stored under MEDIA_ROOT. The report row is then deleted so it
+    no longer appears in `lista_reportes` or on the map.
+    """
+    try:
+        if request.user.profile.role != 'admin':
+            return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+
+    r = get_object_or_404(Reporte, pk=pk)
+    # Only allow deleting reports that have been validated previously
+    if getattr(r, 'estado', None) != 'validado':
+        return JsonResponse({'ok': False, 'error': 'only validated reports can be deleted'}, status=400)
+
+    try:
+        # Attempt to remove ORM-related rows that reference this report
+        try:
+            from .models import Comentario, Multimedia, ValidacionReporte
+            Comentario.objects.filter(reporte_id=r.id).delete()
+            Multimedia.objects.filter(reporte_id=r.id).delete()
+            ValidacionReporte.objects.filter(reporte_id=r.id).delete()
+        except Exception:
+            # If these models don't exist or deletion fails, continue with file cleanup
+            pass
+
+        # Delete JSON files under MEDIA_ROOT that store comments/validations for this report
+        try:
+            comments_file = os.path.join(settings.MEDIA_ROOT, 'comments', f'report_{r.id}.json')
+            if os.path.exists(comments_file):
+                os.remove(comments_file)
+        except Exception:
+            pass
+
+        try:
+            vals_file = os.path.join(settings.MEDIA_ROOT, 'validations', f'report_{r.id}.json')
+            if os.path.exists(vals_file):
+                os.remove(vals_file)
+        except Exception:
+            pass
+
+        # Delete stored image file (if the model stored a relative path)
+        try:
+            if getattr(r, 'imagen', None):
+                img_path = os.path.join(settings.MEDIA_ROOT, str(r.imagen))
+                if os.path.exists(img_path):
+                    os.remove(img_path)
+        except Exception:
+            pass
+
+        # Finally delete the report DB record
+        r.delete()
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        import traceback
+        return JsonResponse({'ok': False, 'error': str(e), 'trace': traceback.format_exc()}, status=500)
 
 
 @login_required

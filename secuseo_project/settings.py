@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Load .env file for local development (optional)
+env_path = Path(__file__).resolve().parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(str(env_path))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -170,3 +176,5 @@ if not os.path.exists(SPATIALITE_LIBRARY_PATH):
 
 # If you want to use spatialite with the default sqlite DB for development, set the engine
 # to django.contrib.gis.db.backends.spatialite via environment variable SQL_ENGINE.
+
+# Twilio settings removed — SMS verification via Twilio disabled for now.

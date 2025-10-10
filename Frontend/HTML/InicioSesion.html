@@ -40,7 +40,7 @@
 <button :class="isLogin ? 'border-b-2 border-[var(--primary-color)] text-[var(--primary-color)]' : 'text-gray-500'" @click="isLogin = true" class="flex-1 py-2 font-medium text-center transition-colors">Iniciar Sesión</button>
 <button :class="!isLogin ? 'border-b-2 border-[var(--primary-color)] text-[var(--primary-color)]' : 'text-gray-500'" @click="isLogin = false" class="flex-1 py-2 font-medium text-center transition-colors">Registrarse</button>
 </div>
-<form action="#" class="space-y-6" x-show="isLogin">
+<form action="/login/" method="post" class="space-y-6" x-show="isLogin">
 <div>
 <label class="text-sm font-medium text-gray-700 sr-only" for="login-email">Correo electrónico</label>
 <input class="form-input w-full px-4 py-3 rounded-lg text-base" id="login-email" placeholder="Correo electrónico" required="" type="email"/>
@@ -52,8 +52,11 @@
 <div>
 <button class="w-full px-4 py-3 font-semibold text-white bg-[var(--primary-color)] rounded-lg hover:bg-[var(--accent-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-300" type="submit">Ingresar</button>
 </div>
+  {% csrf_token %}
 </form>
-<form action="#" class="space-y-6" style="display: none;" x-show="!isLogin">
+
+<form action="/login/" method="post" class="space-y-6" style="display: none;" x-show="!isLogin">
+  {% csrf_token %}
 <div>
 <label class="text-sm font-medium text-gray-700 sr-only" for="register-name">Nombre completo</label>
 <input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-name" placeholder="Nombre completo" required="" type="text"/>
@@ -65,6 +68,10 @@
 <div>
 <label class="text-sm font-medium text-gray-700 sr-only" for="register-password">Contraseña</label>
 <input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-password" placeholder="Contraseña" required="" type="password"/>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 sr-only" for="register-telefono">Teléfono</label>
+<input class="form-input w-full px-4 py-3 rounded-lg text-base" id="register-telefono" placeholder="Teléfono (ej: +573001112233)" required="" type="tel"/>
 </div>
 <div>
 <label class="text-sm font-medium text-gray-700 sr-only" for="register-dob">Fecha de Nacimiento</label>
@@ -135,12 +142,14 @@ document.addEventListener('DOMContentLoaded', function(){
       const name = document.getElementById('register-name').value;
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
+      const telefono = document.getElementById('register-telefono').value;
       const dob = document.getElementById('register-dob').value;
       const fd = new FormData();
       fd.append('action','register');
       fd.append('name', name);
       fd.append('email', email);
       fd.append('password', password);
+      fd.append('telefono', telefono);
       fd.append('dob', dob);
       try {
         const res = await fetch('/login/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
@@ -149,9 +158,35 @@ document.addEventListener('DOMContentLoaded', function(){
           showAlert(data.error || 'No se pudo registrar');
           return;
         }
+        // If server asks for verification, show OTP prompt
+        if (data.verify_user_id) {
+          const code = prompt('Ingresa el código enviado al teléfono' + (data.debug_code ? (' (debug: ' + data.debug_code + ')') : ''));
+          if (!code) { showAlert('Código requerido'); return; }
+          const vfd = new FormData();
+          vfd.append('user_id', data.verify_user_id);
+          vfd.append('code', code);
+          const vres = await fetch('/verify-phone/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: vfd });
+          const vdata = await vres.json();
+          if (!vres.ok || !vdata.ok) { showAlert(vdata.error || 'Verificación fallida'); return; }
+          // verification success: redirect to home
+          window.location.href = '/';
+          return;
+        }
         if (data.redirect) window.location.href = data.redirect;
       } catch (err) { showAlert('Error de red'); }
     });
+  }
+  
+  // Ensure csrftoken cookie exists for AJAX: if template rendered a csrf hidden input, copy its value into a cookie
+  try {
+    if (!getCookie('csrftoken')) {
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (csrfInput && csrfInput.value) {
+        document.cookie = 'csrftoken=' + encodeURIComponent(csrfInput.value) + ';path=/';
+      }
+    }
+  } catch (e) {
+    // noop
   }
 });
 </script>
