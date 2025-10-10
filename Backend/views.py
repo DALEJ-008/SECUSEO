@@ -836,6 +836,23 @@ def api_admin_pending_reportes(request):
     qs = Reporte.objects.filter(estado='pendiente').select_related('zona', 'creado_por').order_by('fecha_creacion')
     out = []
     for r in qs:
+        # creator contact info
+        creator = None
+        try:
+            cp = None
+            if getattr(r, 'creado_por', None):
+                try:
+                    cp = r.creado_por.profile
+                except Exception:
+                    cp = None
+            creator = {
+                'username': (r.creado_por.username if getattr(r, 'creado_por', None) else None),
+                'email': (r.creado_por.email if getattr(r, 'creado_por', None) else None),
+                'telefono': (cp.telefono if cp and getattr(cp, 'telefono', None) else None)
+            }
+        except Exception:
+            creator = {'username': None, 'email': None, 'telefono': None}
+
         out.append({
             'id': r.id,
             'ubicacion': r.ubicacion,
@@ -845,7 +862,98 @@ def api_admin_pending_reportes(request):
             'coordenadas': r.coordenadas,
             'fecha_creacion': r.fecha_creacion.isoformat(),
             'imagen_url': r.imagen_url if hasattr(r, 'imagen_url') else (r.imagen.url if getattr(r, 'imagen', None) else None),
-            'creado_por': (lambda rr: (rr.creado_por.username if getattr(rr, 'creado_por', None) else None)) (r) if True else None,
+            'creado_por': creator,
+        })
+    return JsonResponse({'reportes': out})
+
+
+@login_required
+def api_admin_validated_reportes(request):
+    if request.user.profile.role != 'admin':
+        return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+    qs = Reporte.objects.filter(estado='validado').select_related('zona', 'creado_por').order_by('-fecha_creacion')[:200]
+    out = []
+    for r in qs:
+        # creator contact info
+        creator = None
+        try:
+            cp = None
+            if getattr(r, 'creado_por', None):
+                try:
+                    cp = r.creado_por.profile
+                except Exception:
+                    cp = None
+            creator = {
+                'username': (r.creado_por.username if getattr(r, 'creado_por', None) else None),
+                'email': (r.creado_por.email if getattr(r, 'creado_por', None) else None),
+                'telefono': (cp.telefono if cp and getattr(cp, 'telefono', None) else None)
+            }
+        except Exception:
+            creator = {'username': None, 'email': None, 'telefono': None}
+
+        out.append({
+            'id': r.id,
+            'ubicacion': r.ubicacion,
+            'descripcion': r.descripcion,
+            'prioridad': r.prioridad,
+            'zona': (lambda rr: (rr.zona.nombre if getattr(rr, 'zona', None) else None)) (r) if True else None,
+            'coordenadas': r.coordenadas,
+            'fecha_creacion': r.fecha_creacion.isoformat() if r.fecha_creacion else None,
+            'imagen_url': r.imagen_url if hasattr(r, 'imagen_url') else (r.imagen.url if getattr(r, 'imagen', None) else None),
+            'creado_por': creator,
+        })
+    return JsonResponse({'reportes': out})
+
+
+@login_required
+def api_admin_reportes_search(request):
+    """Search admin reports by q (text) and estado filter.
+    Query params: q (string), estado (pendiente|validado|rechazado|all)
+    """
+    if request.user.profile.role != 'admin':
+        return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+    q = request.GET.get('q') or request.GET.get('query')
+    estado = request.GET.get('estado') or request.GET.get('status') or 'all'
+    qs = Reporte.objects.all().select_related('zona', 'creado_por')
+    if estado and estado != 'all':
+        qs = qs.filter(estado=estado)
+    if q and q.strip():
+        ql = q.strip()
+        # search in ubicacion, descripcion, creado_por username/email
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(ubicacion__icontains=ql) | Q(descripcion__icontains=ql) | Q(creado_por__username__icontains=ql) | Q(creado_por__email__icontains=ql)
+        )
+    qs = qs.order_by('-fecha_creacion')[:500]
+    out = []
+    for r in qs:
+        # creator info
+        try:
+            cp = None
+            if getattr(r, 'creado_por', None):
+                try:
+                    cp = r.creado_por.profile
+                except Exception:
+                    cp = None
+            creator = {
+                'username': (r.creado_por.username if getattr(r, 'creado_por', None) else None),
+                'email': (r.creado_por.email if getattr(r, 'creado_por', None) else None),
+                'telefono': (cp.telefono if cp and getattr(cp, 'telefono', None) else None)
+            }
+        except Exception:
+            creator = {'username': None, 'email': None, 'telefono': None}
+
+        out.append({
+            'id': r.id,
+            'ubicacion': r.ubicacion,
+            'descripcion': r.descripcion,
+            'prioridad': r.prioridad,
+            'estado': r.estado,
+            'zona': (lambda rr: (rr.zona.nombre if getattr(rr, 'zona', None) else None)) (r) if True else None,
+            'coordenadas': r.coordenadas,
+            'fecha_creacion': r.fecha_creacion.isoformat() if r.fecha_creacion else None,
+            'imagen_url': r.imagen_url if hasattr(r, 'imagen_url') else (r.imagen.url if getattr(r, 'imagen', None) else None),
+            'creado_por': creator,
         })
     return JsonResponse({'reportes': out})
 
@@ -875,12 +983,11 @@ def api_admin_rechazar_reporte(request, pk):
 @require_POST
 @login_required
 def api_admin_eliminar_reporte(request, pk):
-    """Permanently delete a report that has already been validated.
+    """Permanently delete a report that has been previously validated.
 
-    Only admins may call this. The endpoint removes related DB rows (comentarios,
-    multimedia, validaciones) where possible and deletes local JSON files and
-    image files stored under MEDIA_ROOT. The report row is then deleted so it
-    no longer appears in `lista_reportes` or on the map.
+    This removes the DB row (or raw SQL delete), deletes any stored
+    JSON artifacts under MEDIA_ROOT (comments, validations), and removes
+    the stored image file if present. Only admins may call this.
     """
     try:
         if request.user.profile.role != 'admin':
@@ -888,52 +995,63 @@ def api_admin_eliminar_reporte(request, pk):
     except Exception:
         return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
 
+    # Fetch the report and ensure it was validated
     r = get_object_or_404(Reporte, pk=pk)
-    # Only allow deleting reports that have been validated previously
     if getattr(r, 'estado', None) != 'validado':
-        return JsonResponse({'ok': False, 'error': 'only validated reports can be deleted'}, status=400)
+        return JsonResponse({'ok': False, 'error': 'only validated reports can be permanently deleted'}, status=400)
+
+    # Delete file-based artifacts: comments, validations
+    try:
+        comments_dir = os.path.join(settings.MEDIA_ROOT, 'comments')
+        comments_file = os.path.join(comments_dir, f'report_{r.id}.json')
+        if os.path.exists(comments_file):
+            os.remove(comments_file)
+    except Exception:
+        pass
 
     try:
-        # Attempt to remove ORM-related rows that reference this report
+        vals_dir = os.path.join(settings.MEDIA_ROOT, 'validations')
+        vals_file = os.path.join(vals_dir, f'report_{r.id}.json')
+        if os.path.exists(vals_file):
+            os.remove(vals_file)
+    except Exception:
+        pass
+
+    # Delete stored image file if it exists and is under report_images
+    try:
+        if getattr(r, 'imagen', None):
+            img_path = os.path.join(settings.MEDIA_ROOT, str(r.imagen))
+            if os.path.exists(img_path):
+                os.remove(img_path)
+    except Exception:
+        pass
+
+    # Delete any multimedia/comment DB rows that reference this report (best-effort)
+    try:
+        from .models import Comentario, Multimedia
         try:
-            from .models import Comentario, Multimedia, ValidacionReporte
             Comentario.objects.filter(reporte_id=r.id).delete()
+        except Exception:
+            pass
+        try:
             Multimedia.objects.filter(reporte_id=r.id).delete()
-            ValidacionReporte.objects.filter(reporte_id=r.id).delete()
         except Exception:
-            # If these models don't exist or deletion fails, continue with file cleanup
             pass
+    except Exception:
+        pass
 
-        # Delete JSON files under MEDIA_ROOT that store comments/validations for this report
+    # Finally remove the report row. Use raw SQL delete to be safe with legacy managed=False models
+    try:
+        with connection.cursor() as cur:
+            cur.execute('DELETE FROM "Backend_reporte" WHERE id = %s', [r.id])
+    except Exception:
+        # fallback to model delete
         try:
-            comments_file = os.path.join(settings.MEDIA_ROOT, 'comments', f'report_{r.id}.json')
-            if os.path.exists(comments_file):
-                os.remove(comments_file)
-        except Exception:
-            pass
+            r.delete()
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': 'could not delete report', 'detail': str(e)}, status=500)
 
-        try:
-            vals_file = os.path.join(settings.MEDIA_ROOT, 'validations', f'report_{r.id}.json')
-            if os.path.exists(vals_file):
-                os.remove(vals_file)
-        except Exception:
-            pass
-
-        # Delete stored image file (if the model stored a relative path)
-        try:
-            if getattr(r, 'imagen', None):
-                img_path = os.path.join(settings.MEDIA_ROOT, str(r.imagen))
-                if os.path.exists(img_path):
-                    os.remove(img_path)
-        except Exception:
-            pass
-
-        # Finally delete the report DB record
-        r.delete()
-        return JsonResponse({'ok': True})
-    except Exception as e:
-        import traceback
-        return JsonResponse({'ok': False, 'error': str(e), 'trace': traceback.format_exc()}, status=500)
+    return JsonResponse({'ok': True})
 
 
 @login_required
@@ -996,6 +1114,7 @@ def api_admin_counts(request):
         return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
     from django.contrib.auth.models import User
     pending = Reporte.objects.filter(estado='pendiente').count()
+    validated = Reporte.objects.filter(estado='validado').count()
     users = User.objects.count()
     comunicados = 0
     try:
@@ -1003,7 +1122,7 @@ def api_admin_counts(request):
         comunicados = Comentario.objects.count()
     except Exception:
         comunicados = 0
-    return JsonResponse({'pending_reportes': pending, 'users_total': users, 'comunicados_recientes': comunicados})
+    return JsonResponse({'pending_reportes': pending, 'validated_reportes': validated, 'users_total': users, 'comunicados_recientes': comunicados})
 
 
 @login_required

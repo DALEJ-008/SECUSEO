@@ -87,42 +87,83 @@
 <h1 class="text-3xl font-bold tracking-tight text-slate-900">Panel de Administración</h1>
 <p class="text-gray-500 mt-1">Bienvenido, gestiona la aplicación desde aquí.</p>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-<div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
-<p class="text-[var(--text-secondary)] text-sm font-medium">Reportes Pendientes</p>
-<p class="text-3xl font-bold text-slate-900"><span id="count-pending">0</span></p>
-</div>
-<div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
-<p class="text-[var(--text-secondary)] text-sm font-medium">Usuarios Totales</p>
-<p class="text-3xl font-bold text-slate-900"><span id="count-users">0</span></p>
-</div>
-<div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
-<p class="text-[var(--text-secondary)] text-sm font-medium">Comunicados Recientes</p>
-<p class="text-3xl font-bold text-slate-900"><span id="count-comms">0</span></p>
-</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  <div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
+    <p class="text-[var(--text-secondary)] text-sm font-medium">Reportes Pendientes</p>
+    <p class="text-3xl font-bold text-slate-900"><span id="count-pending">0</span></p>
+  </div>
+  <div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
+    <p class="text-[var(--text-secondary)] text-sm font-medium">Reportes Validados</p>
+    <p class="text-3xl font-bold text-slate-900"><span id="count-validated">0</span></p>
+  </div>
+  <div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
+    <p class="text-[var(--text-secondary)] text-sm font-medium">Usuarios Totales</p>
+    <p class="text-3xl font-bold text-slate-900"><span id="count-users">0</span></p>
+  </div>
+  <div class="flex flex-col gap-2 rounded-lg p-6 bg-white border border-[var(--border-color)] shadow-sm">
+    <p class="text-[var(--text-secondary)] text-sm font-medium">Comunicados Recientes</p>
+    <p class="text-3xl font-bold text-slate-900"><span id="count-comms">0</span></p>
+  </div>
 </div>
 <div class="space-y-12">
 <div id="reports-section" class="bg-white border border-[var(--border-color)] rounded-lg shadow-sm overflow-hidden">
-<div class="px-6 py-4 border-b border-[var(--border-color)]">
-<h2 class="text-lg font-semibold text-slate-900">Gestión de Reportes</h2>
+  <div class="px-6 py-4 border-b border-[var(--border-color)]">
+    <h2 class="text-lg font-semibold text-slate-900">Gestión de Reportes</h2>
+  </div>
+  <div class="px-6 py-4 border-b border-[var(--border-color)] bg-white">
+    <div class="flex flex-wrap gap-3 items-center">
+      <input id="reports-search" class="block rounded-md border-gray-200 p-2 text-sm w-72" placeholder="Buscar por ubicación, descripción, usuario..." />
+      <select id="reports-estado" class="rounded-md border-gray-200 p-2 text-sm">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="validado">Validado</option>
+        <option value="rechazado">Rechazado</option>
+      </select>
+      <button id="reports-search-btn" class="inline-flex items-center gap-2 h-9 px-3 rounded-md bg-[var(--primary-color)] text-white text-sm">Buscar</button>
+      <button id="reports-clear-btn" class="inline-flex items-center gap-2 h-9 px-3 rounded-md bg-gray-100 text-sm">Limpiar</button>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-[#eef5ff]">
+      <thead class="bg-[#eef5ff]">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Reporte ID</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creador</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-[var(--border-color)]" id="reports-tbody">
+        <!-- report rows will be loaded dynamically -->
+      </tbody>
+    </table>
+  </div>
 </div>
-<div class="overflow-x-auto">
-<table class="min-w-full divide-y divide-[#eef5ff]">
-<thead class="bg-[#eef5ff]">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Reporte ID</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Ubicación</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Descripción</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Estado</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" scope="col">Acciones</th>
-</tr>
-</thead>
-<tbody class="bg-white divide-y divide-[var(--border-color)]" id="reports-tbody">
-<!-- report rows will be loaded dynamically -->
-</tbody>
-</table>
+<!-- Validated reports section (admins) -->
+<div class="mt-6 bg-white border border-[var(--border-color)] rounded-lg shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-[var(--border-color)]">
+    <h2 class="text-lg font-semibold text-slate-900">Reportes Validados</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-[#eef5ff]">
+      <thead class="bg-[#eef5ff]"><tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporte ID</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creador</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+      </tr></thead>
+      <tbody id="validated-tbody" class="bg-white divide-y divide-[var(--border-color)]"></tbody>
+    </table>
+  </div>
 </div>
-</div>
+
 <div id="users-section" class="bg-white border border-[var(--border-color)] rounded-lg shadow-sm overflow-hidden">
 <div class="px-6 py-4 border-b border-[var(--border-color)]">
 <h2 class="text-lg font-semibold text-slate-900">Gestión de Usuarios</h2>
@@ -181,7 +222,10 @@ async function fetchPending() {
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">#${r.id}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${r.ubicacion || (r.coordenadas ? r.coordenadas.join(',') : '—')}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.descripcion || '').slice(0,120)}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"> Pendiente </span></td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.username) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.telefono) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.email) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"> Pendiente </span></td>
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
           <button data-id="${r.id}" class="view text-blue-600 hover:text-blue-900">Ver</button>
           <button data-id="${r.id}" class="approve text-green-600 hover:text-green-900">Aprobar</button>
@@ -221,6 +265,51 @@ function attachActions(){
   });
 }
 
+async function fetchValidated(){
+  try{
+    const res = await fetch('/admin/api/reportes/validated/');
+    if(!res.ok) throw new Error('error fetching validated');
+    const data = await res.json();
+    const t = document.getElementById('validated-tbody');
+    if(!t) return;
+    t.innerHTML = '';
+    data.reportes.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">#${r.id}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${r.ubicacion || (r.coordenadas ? r.coordenadas.join(',') : '—')}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.descripcion || '').slice(0,120)}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.username) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.telefono) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.email) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+          <button data-id="${r.id}" class="view-valid text-blue-600 hover:text-blue-900">Ver</button>
+          <button data-id="${r.id}" class="delete-perm text-red-600 hover:text-red-900">Eliminar</button>
+        </td>
+      `;
+      t.appendChild(tr);
+    });
+    attachValidatedActions();
+  }catch(e){console.error(e)}
+}
+
+function attachValidatedActions(){
+  document.querySelectorAll('button.delete-perm').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      const id = e.target.dataset.id;
+      if(!confirm('Eliminar reporte #' + id + '? Esta acción eliminará todos los datos del sistema.')) return;
+      const res = await fetch(`/admin/api/reportes/${id}/eliminar/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
+      if(res.ok){ alert('Reporte eliminado'); fetchValidated(); fetchPending(); } else { alert('Error al eliminar'); }
+    }
+  });
+  document.querySelectorAll('button.view-valid').forEach(btn=>{
+    btn.onclick = async (e)=>{
+      const id = e.target.dataset.id;
+      window.location.href = `/reportes/${id}/`;
+    }
+  });
+}
+
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -229,12 +318,22 @@ function getCookie(name) {
 
 document.addEventListener('DOMContentLoaded', ()=>{
   fetchPending();
+  fetchValidated();
   // refresh every 60s
   setInterval(fetchPending, 60000);
+  setInterval(fetchValidated, 60000);
   fetchUsers();
   setInterval(fetchUsers, 120000);
   fetchCounts();
   setInterval(fetchCounts, 60000);
+  // wire search controls
+  const searchBtn = document.getElementById('reports-search-btn');
+  const clearBtn = document.getElementById('reports-clear-btn');
+  if(searchBtn){ searchBtn.addEventListener('click', ()=>{ runReportsSearch(); }); }
+  if(clearBtn){ clearBtn.addEventListener('click', ()=>{ document.getElementById('reports-search').value=''; document.getElementById('reports-estado').value=''; fetchPending(); }); }
+  // also allow enter to trigger search
+  const searchInput = document.getElementById('reports-search');
+  if(searchInput){ searchInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runReportsSearch(); } }); }
   // smooth scroll for nav
   document.querySelectorAll('nav a[data-target]').forEach(a=>{
     a.addEventListener('click', (e)=>{
@@ -461,8 +560,8 @@ async function fetchUsers(){
       tbody.appendChild(tr);
     });
     attachUserActions();
-    // update user count card
-    const card = document.querySelectorAll('.grid div')[1];
+    // update user count card (now the 3rd card after adding validated count)
+    const card = document.querySelectorAll('.grid div')[2];
     if (card) {
       const p = card.querySelectorAll('p')[1];
       if (p) p.textContent = data.users.length;
@@ -478,7 +577,45 @@ async function fetchCounts(){
     document.getElementById('count-pending').textContent = d.pending_reportes;
     document.getElementById('count-users').textContent = d.users_total;
     document.getElementById('count-comms').textContent = d.comunicados_recientes;
+    // new validated count
+    const cv = document.getElementById('count-validated'); if(cv) cv.textContent = (d.validated_reportes || 0);
   }catch(e){console.error('count fetch',e)}
+}
+
+async function runReportsSearch(){
+  const q = (document.getElementById('reports-search') || {}).value || '';
+  const estado = (document.getElementById('reports-estado') || {}).value || '';
+  const params = new URLSearchParams();
+  if(q) params.append('q', q);
+  if(estado) params.append('estado', estado);
+  // call search endpoint
+  try{
+    const res = await fetch('/admin/api/reportes/search/?' + params.toString());
+    if(!res.ok) throw new Error('search failed');
+    const data = await res.json();
+    // render into reports-tbody (reuse same layout as fetchPending)
+    const reportSection = document.getElementById('reports-tbody');
+    reportSection.innerHTML = '';
+    data.reportes.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">#${r.id}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${r.ubicacion || (r.coordenadas ? r.coordenadas.join(',') : '—')}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.descripcion || '').slice(0,120)}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.username) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.telefono) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">${(r.creado_por && r.creado_por.email) || '—'}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${r.estado==='validado' ? 'bg-green-100 text-green-800' : (r.estado==='rechazado' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')}"> ${r.estado || '—'} </span></td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+          <button data-id="${r.id}" class="view text-blue-600 hover:text-blue-900">Ver</button>
+          ${r.estado==='pendiente' ? `<button data-id="${r.id}" class="approve text-green-600 hover:text-green-900">Aprobar</button>` : ''}
+          ${r.estado!=='validado' ? `<button data-id="${r.id}" class="reject text-red-600 hover:text-red-900">Eliminar</button>` : ''}
+        </td>
+      `;
+      reportSection.appendChild(tr);
+    });
+    attachActions();
+  }catch(e){ console.error(e); alert('Error al buscar reportes'); }
 }
 
 function attachUserActions(){
@@ -549,7 +686,6 @@ function attachUserActions(){
         <div class="mt-6 flex gap-3">
           <button id="modal-approve" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-green-600 text-white text-sm font-medium shadow-sm hover:bg-green-700">Aprobar</button>
           <button id="modal-reject" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-red-50 text-red-600 text-sm font-medium border border-red-100 hover:bg-red-100">Rechazar</button>
-          <button id="modal-delete" style="display:none" class="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-red-700 text-white text-sm font-medium shadow-sm hover:bg-red-800">Eliminar permanentemente</button>
         </div>
       </div>
 
@@ -668,21 +804,6 @@ function attachViewActions(){
         const res = await fetch(`/admin/api/reportes/${d.id}/rechazar/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
         if(res.ok){ alert('Reporte rechazado'); modal.classList.remove('flex'); modal.classList.add('hidden'); fetchPending(); } else { alert('Error al rechazar'); }
       }}
-
-      // wire delete button for validated reports
-      const deleteBtn = document.getElementById('modal-delete');
-      if(deleteBtn){
-        if(d.estado && d.estado.toLowerCase() === 'validado'){
-          deleteBtn.style.display = '';
-        } else {
-          deleteBtn.style.display = 'none';
-        }
-        deleteBtn.onclick = async ()=>{
-          if(!confirm('Eliminar permanentemente el reporte #' + d.id + '? Esta acción es irreversible.')) return;
-          const res = await fetch(`/admin/api/reportes/${d.id}/eliminar/`, {method:'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}});
-          if(res.ok){ alert('Reporte eliminado'); modal.classList.remove('flex'); modal.classList.add('hidden'); fetchPending(); } else { alert('Error al eliminar reporte'); }
-        };
-      }
 
       // close handler removes the map
       const closeModal = ()=>{ modal.classList.remove('flex'); modal.classList.add('hidden'); if(window._modalMap){ try{ window._modalMap.remove(); }catch(e){} window._modalMap = null; } };
