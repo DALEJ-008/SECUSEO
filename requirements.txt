@@ -1,4 +1,0 @@
-Django==5.2.6
-psycopg2-binary
-requests
-python-dotenv
