@@ -18,6 +18,7 @@ from django.utils import timezone
 import random
 import hashlib
 import pathlib
+from django.views.decorators.csrf import csrf_exempt
 # ...existing code...
 
 
@@ -73,6 +74,24 @@ def lista_reportes(request):
         return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
 
     qs = Reporte.objects.filter(estado='validado').select_related('zona', 'creado_por')[:100]
+    # load lifecycle states for these reports (file-based storage) and skip resolved
+    statuses = {}
+    try:
+        ids = [r.id for r in qs]
+        statuses_dir = os.path.join(settings.MEDIA_ROOT, 'report_statuses')
+        for rid in ids:
+            sf = os.path.join(statuses_dir, f'report_{rid}.json')
+            if os.path.exists(sf):
+                try:
+                    with open(sf, 'r', encoding='utf-8') as fh:
+                        import json as _json
+                        statuses[rid] = _json.load(fh)
+                except Exception:
+                    statuses[rid] = {'state': None}
+            else:
+                statuses[rid] = {'state': 'Activo'}
+    except Exception:
+        statuses = {}
     data = []
     for r in qs:
         # Determina el nombre de la zona
@@ -163,6 +182,11 @@ def lista_reportes(request):
                             pass
         except Exception:
             zona_name = None
+
+        # skip if lifecycle state is Resuelto
+        st = statuses.get(r.id, {}).get('state') if statuses else None
+        if st == 'Resuelto':
+            continue
 
         data.append({
             'id': r.id,
@@ -324,6 +348,15 @@ def crear_reporte(request):
                 if not getattr(rep, 'estado', None):
                     rep.estado = 'pendiente'
 
+                # set lifecycle status file (default: Activo)
+                try:
+                    statuses_dir = os.path.join(settings.MEDIA_ROOT, 'report_statuses')
+                    os.makedirs(statuses_dir, exist_ok=True)
+                    status_path = os.path.join(statuses_dir, f'report_{rep.id if getattr(rep, "id", None) else "new"}.json')
+                    # only write after save (below) when we have id; we'll handle after saving
+                except Exception:
+                    pass
+
                 # Run model validation to surface errors before attempting to save
                 try:
                     # exclude imagen if it's a file-like issue
@@ -339,6 +372,15 @@ def crear_reporte(request):
 
                 try:
                     rep.save()
+                    # write lifecycle status file now that we have an id
+                    try:
+                        statuses_dir = os.path.join(settings.MEDIA_ROOT, 'report_statuses')
+                        os.makedirs(statuses_dir, exist_ok=True)
+                        status_path = os.path.join(statuses_dir, f'report_{rep.id}.json')
+                        import json as _json
+                        _json.dump({'state': 'Activo', 'updated': timezone.now().isoformat()}, open(status_path, 'w', encoding='utf-8'))
+                    except Exception:
+                        pass
                     return JsonResponse({'ok': True, 'id': rep.id})
                 except Exception as save_exc:
                     # write detailed debug info to a server-side file under MEDIA_ROOT for inspection
@@ -617,6 +659,31 @@ def verify_phone(request):
 def logout_view(request):
     logout(request)
     return redirect('/login/')
+
+
+@require_http_methods(['POST'])
+@login_required
+def api_set_report_state(request, pk):
+    # Only authenticated users can mark states; optionally restrict to moderators/admins later
+    if not request.user or not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'authentication required'}, status=401)
+    state = request.POST.get('state') or request.GET.get('state')
+    if not state:
+        return JsonResponse({'ok': False, 'error': 'state required'}, status=400)
+    # normalize allowed states
+    allowed = ['Activo', 'En progreso', 'Resuelto']
+    if state not in allowed:
+        return JsonResponse({'ok': False, 'error': 'invalid state'}, status=400)
+    # write status file
+    try:
+        statuses_dir = os.path.join(settings.MEDIA_ROOT, 'report_statuses')
+        os.makedirs(statuses_dir, exist_ok=True)
+        status_path = os.path.join(statuses_dir, f'report_{int(pk)}.json')
+        import json as _json
+        _json.dump({'state': state, 'updated_by': request.user.username, 'updated': timezone.now().isoformat()}, open(status_path, 'w', encoding='utf-8'))
+        return JsonResponse({'ok': True, 'state': state})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
 @login_required

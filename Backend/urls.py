@@ -41,4 +41,5 @@ urlpatterns = [
     path('api/whoami/', views.api_whoami, name='api_whoami'),
     path('api/profile/update/', views.api_profile_update, name='api_profile_update'),
     path('verify-phone/', views.verify_phone, name='verify_phone'),
+    path('api/reportes/<int:pk>/set-state/', views.api_set_report_state, name='api_set_report_state'),
 ]
