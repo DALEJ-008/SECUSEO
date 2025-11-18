@@ -12,17 +12,13 @@
 
 <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<style type="text/tailwindcss">
-
+<style>
         :root {
             --primary-color: #545dfa;
             --secondary-color: #e7edf3;
             --third-color: #f1f2ff;
             --text-primary: #3a41b3;
             --text-secondary: #3a41b3;
-        }
-        .form-input {
-            @apply w-full rounded-lg border-slate-300 bg-[var(--secondary-color)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:ring-blue-500;
         }
         body {
             font-family: 'Poppins', sans-serif;
@@ -53,7 +49,7 @@
 <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                             location_on
                         </span>
-<input class="form-input h-12 w-full rounded-lg border-slate-300 bg-slate-100 pl-10 pr-4 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="location" placeholder="Selecciona en el mapa o ingresa una dirección" type="text"/>
+<input class="h-12 w-full rounded-lg border-slate-300 bg-slate-100 pl-10 pr-4 text-[var(--text-primary)] focus:border-blue-500 focus:ring-blue-500" id="location" placeholder="Selecciona en el mapa o ingresa una dirección" type="text"/>
 </div>
 </div>
 <!-- Zona removed: server will determine zona from coordinates -->
@@ -98,7 +94,7 @@
 </div>
 <div>
 <label class="mb-1 block text-sm font-medium text-slate-700" for="description">Descripción</label>
-<textarea class="form-input min-h-32 w-full rounded-lg border-slate-300 bg-slate-100 p-4 text-base focus:border-blue-500 focus:ring-blue-500" id="description" placeholder="Describe lo que sucede en la zona..."></textarea>
+<textarea class="min-h-32 w-full rounded-lg border-slate-300 bg-slate-100 p-4 text-base focus:border-blue-500 focus:ring-blue-500" id="description" placeholder="Describe lo que sucede en la zona..."></textarea>
 </div>
 <div>
 <label class="mb-1 block text-sm font-medium text-slate-700" for="file-upload">Subir imagen (opcional)</label>
